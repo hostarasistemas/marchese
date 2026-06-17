@@ -652,6 +652,8 @@ function lockBodyScroll() {
   document.body.style.overflow = "hidden";
 }
 function unlockBodyScroll() {
+  // Solo restaurar si el body realmente está bloqueado (evita scroll al top involuntario)
+  if (document.body.style.position !== "fixed") return;
   document.body.style.position = "";
   document.body.style.top = "";
   document.body.style.left = "";
@@ -671,6 +673,8 @@ function openProductModal(productId) {
 }
 
 function closeProductModal() {
+  // Guard: no hacer nada si el modal no está abierto
+  if (!productModal.classList.contains("open")) return;
   modalOverlay.classList.remove("open");
   productModal.classList.remove("open");
   unlockBodyScroll();
@@ -800,6 +804,69 @@ function handleRemove(productId) {
 }
 
 // ──────────────────────────────────────────────────────────
+// QR MODAL (desktop) / WHATSAPP DIRECTO (mobile)
+// ──────────────────────────────────────────────────────────
+
+// Genera el QR en el canvas usando la API pública de QR Server
+// sin dependencias npm — solo una <img> generada por URL.
+function renderQRCode(url) {
+  const canvas = document.getElementById("qrCanvas");
+  if (!canvas) return;
+
+  // Usamos la API pública qrserver.com (sin límite para uso personal)
+  const size = 200;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=0&format=png`;
+
+  // Convertir canvas a img dinámica
+  const frame = document.getElementById("qrFrame");
+  // Eliminar canvas y reemplazar por img si ya existe
+  canvas.remove();
+  let img = frame.querySelector("img.qr-img");
+  if (!img) {
+    img = document.createElement("img");
+    img.className = "qr-img";
+    img.width = size;
+    img.height = size;
+    img.style.borderRadius = "8px";
+    img.style.display = "block";
+    // Insertar antes del primer qr-corner
+    frame.insertBefore(img, frame.querySelector(".qr-corner"));
+  }
+  img.src = qrUrl;
+  img.alt = "QR código de WhatsApp";
+}
+
+const qrModalOverlay = document.getElementById("qrModalOverlay");
+const qrModalClose   = document.getElementById("qrModalClose");
+const qrWaWebBtn     = document.getElementById("qrWaWebBtn");
+
+function openQrModal(waUrl) {
+  renderQRCode(waUrl);
+  if (qrWaWebBtn) qrWaWebBtn.href = waUrl;
+  if (qrModalOverlay) qrModalOverlay.classList.add("open");
+  lockBodyScroll();
+}
+
+function closeQrModal() {
+  if (!qrModalOverlay || !qrModalOverlay.classList.contains("open")) return;
+  qrModalOverlay.classList.remove("open");
+  unlockBodyScroll();
+}
+
+function setupQrModalListeners() {
+  if (!qrModalOverlay) return;
+  if (qrModalClose)   qrModalClose.addEventListener("click", closeQrModal);
+  qrModalOverlay.addEventListener("click", (e) => {
+    if (e.target === qrModalOverlay) closeQrModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && qrModalOverlay.classList.contains("open")) {
+      closeQrModal();
+    }
+  });
+}
+
+// ──────────────────────────────────────────────────────────
 // WHATSAPP
 // ──────────────────────────────────────────────────────────
 
@@ -824,16 +891,38 @@ function sendOrderToWhatsApp() {
     showToast("Pedido vacío", "error", "Agregá productos antes de enviar");
     return;
   }
-  const message = buildWhatsAppMessage();
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank");
 
-  // Limpiar el carrito después de enviar el pedido
+  const message = buildWhatsAppMessage();
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+  if (isMobile) {
+    // Mobile: directo a WhatsApp
+    window.open(waUrl, "_blank");
+    afterOrderSent();
+  } else {
+    // Desktop: mostrar modal con QR
+    closeCart();
+    openQrModal(waUrl);
+  }
+}
+
+function afterOrderSent() {
   clearCart();
   updateCartBadge();
   renderCart();
   renderProducts();
   showToast("¡Pedido enviado!", "success", "El carrito fue vaciado para una nueva compra");
+}
+
+// Cuando el usuario hace click en "Abrir en WhatsApp Web" desde el modal,
+// consideramos el pedido como enviado.
+function setupWaWebBtnListener() {
+  if (!qrWaWebBtn) return;
+  qrWaWebBtn.addEventListener("click", () => {
+    closeQrModal();
+    afterOrderSent();
+  });
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1106,6 +1195,8 @@ function init() {
   updateCartBadge();
   setupMobileChipListeners();
   setupEventListeners();
+  setupQrModalListeners();
+  setupWaWebBtnListener();
   initFirestoreListeners();
 }
 
