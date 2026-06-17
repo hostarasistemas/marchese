@@ -210,69 +210,46 @@
         }
         .btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
 
-        /* Hero imagen */
-        .hero-img-col { position: relative; }
-        .hero-img-frame {
-            border-radius: 20px; overflow: hidden;
-           
-            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-            position: relative;
+        /* Panel lateral del hero (reemplaza la imagen) */
+        .hero-panel {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.06);
         }
-        .hero-img-frame img { width:100%; height:100%; object-fit:cover; }
-        .deco-chip {
-            position: absolute; top: -14px; right: 10px;
-            background: var(--amber); color: white;
+        .hero-stats {
+            display: flex; align-items: center; gap: 1.5rem;
+            padding-bottom: 1.5rem; margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .hero-stat { flex: 1; min-width: 0; }
+        .hero-stat-num {
             font-family: 'Fraunces', serif;
-            font-size: 0.75rem; font-weight: 900; font-style: italic;
-            padding: 0.5rem 0.85rem; border-radius: 99px;
-            transform: rotate(4deg);
-            box-shadow: 0 4px 12px rgba(232,146,10,0.4);
-            white-space: nowrap; z-index: 2;
+            font-size: 2rem; font-weight: 900;
+            color: var(--amber); line-height: 1;
+            letter-spacing: -0.02em;
         }
-        .hero-float-badge {
-            position: absolute; bottom: -16px; left: 24px;
-            background: white; border: 1px solid var(--border);
-            border-radius: 14px; padding: 0.85rem 1.25rem;
-            display: flex; align-items: center; gap: 0.85rem;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-            z-index: 2; min-width: 0;
+        .hero-stat-label {
+            font-size: 0.78rem; font-weight: 600;
+            color: var(--text-mid); margin-top: 0.35rem;
         }
-        .badge-icon {
+        .hero-stats-divider { width: 1px; height: 36px; background: var(--border); flex-shrink: 0; }
+
+        .hero-features { display: flex; flex-direction: column; }
+        .hero-feature {
+            display: flex; align-items: flex-start; gap: 0.9rem;
+            padding: 0.85rem 0;
+        }
+        .hero-feature + .hero-feature { border-top: 1px solid var(--border); }
+        .hero-feature-icon {
             width: 38px; height: 38px; border-radius: 10px;
-            background: var(--amber-light);
+            background: var(--amber-light); color: var(--amber);
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
-        .badge-label { font-size: 0.8rem; font-weight: 700; color: var(--text); }
-        .badge-sub { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
-
-        /* ══════════════════════════════════════════════════
-           TRUST BAR
-        ══════════════════════════════════════════════════ */
-        .trust-bar {
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            background: var(--white);
-            padding: 0 1.5rem;
-            margin-top: 3.5rem;
-        }
-        .trust-inner {
-            max-width: 700px; margin: 0 auto;
-            display: grid; grid-template-columns: repeat(2, 1fr);
-        }
-        .trust-item {
-            display: flex; align-items: center; gap: 1rem;
-            padding: 1.5rem 2rem;
-        }
-        .trust-item + .trust-item { border-left: 1px solid var(--border); }
-        .trust-icon {
-            width: 40px; height: 40px; border-radius: 10px;
-            background: var(--surface);
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; color: var(--amber);
-        }
-        .trust-label { font-size: 0.875rem; font-weight: 700; color: var(--text); }
-        .trust-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+        .hero-feature-title { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+        .hero-feature-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
 
         /* ══════════════════════════════════════════════════
            BRANDS STRIP
@@ -564,9 +541,10 @@
         }
         .footer-logo {
             font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 900;
-            color: white; margin-bottom: 0.75rem;
+            letter-spacing: -0.02em; margin-bottom: 0.75rem;
         }
-        .footer-logo span { color: var(--amber-mid); }
+        .footer-logo .logo-marchese { color: var(--amber); }
+        .footer-logo .logo-golosinas { color: var(--accent-blue); }
         .footer-desc { font-size: 0.85rem; color: #888; line-height: 1.65; margin-bottom: 1.25rem; }
         .footer-info { font-size: 0.8rem; color: #888; display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.6rem; }
         .footer-info svg { flex-shrink: 0; margin-top: 2px; color: var(--amber-mid); }
@@ -636,27 +614,7 @@
 
             /* Hero */
             .hero-grid { grid-template-columns: 1fr; gap: 2rem; }
-            .hero-img-frame { aspect-ratio: 16/9; }
-            .hero-float-badge {
-                position: relative; bottom: auto; left: auto;
-                margin-top: 1.25rem;
-                display: inline-flex;
-                width: auto; max-width: 100%;
-            }
-
-            /* Trust bar: scroll horizontal */
-            .trust-bar { padding: 0; overflow-x: auto; scrollbar-width: none; }
-            .trust-bar::-webkit-scrollbar { display: none; }
-            .trust-inner {
-                display: flex; flex-direction: row;
-                width: max-content; min-width: 100%;
-                padding: 0 1rem;
-            }
-            .trust-item {
-                flex: 0 0 260px;
-                padding: 1.25rem 1rem;
-            }
-            .trust-item + .trust-item { border-left: 1px solid var(--border); border-top: none; }
+            .hero-panel { padding: 1.5rem; }
 
             /* Catalog: layout como bloque apilado */
             .catalog-layout { display: block; }
@@ -713,11 +671,10 @@
             .hero-desc { font-size: 0.93rem; margin-bottom: 1.75rem; }
             .hero-actions { flex-direction: column; width: 100%; gap: 0.65rem; }
             .btn-primary, .btn-ghost { width: 100%; padding: 0.9rem 1.5rem; }
-            .hero-img-frame { border-radius: 14px; }
-            .deco-chip { top: -10px; right: 8px; font-size: 0.7rem; padding: 0.4rem 0.7rem; }
-
-            /* Trust: mantener scroll horizontal */
-            .trust-item { flex: 0 0 240px; }
+            .hero-panel { padding: 1.35rem; border-radius: 16px; }
+            .hero-stat-num { font-size: 1.7rem; }
+            .hero-feature { padding: 0.7rem 0; gap: 0.75rem; }
+            .hero-feature-icon { width: 34px; height: 34px; }
 
             /* Brands */
             .brands-strip { padding: 2rem 1rem; }
@@ -744,13 +701,11 @@
         @media (max-width: 480px) {
             /* Hero */
             .hero-title { font-size: clamp(1.7rem, 8vw, 2.2rem); line-height: 1.08; }
-            .hero-img-frame { aspect-ratio: 4/3; }
-
-            /* Trust: ítems más compactos */
-            .trust-item { flex: 0 0 200px; padding: 1rem 0.75rem; }
-            .trust-icon { width: 34px; height: 34px; }
-            .trust-label { font-size: 0.8rem; }
-            .trust-sub { font-size: 0.7rem; }
+            .hero-stats { gap: 1rem; padding-bottom: 1.25rem; margin-bottom: 1.25rem; }
+            .hero-stat-num { font-size: 1.5rem; }
+            .hero-stat-label { font-size: 0.72rem; }
+            .hero-feature-title { font-size: 0.85rem; }
+            .hero-feature-sub { font-size: 0.74rem; }
 
             /* Brands: más compacto */
             .brand-logo-card { width: 88px; padding: 0.75rem; }
@@ -1619,45 +1574,59 @@
                 </div>
             </div>
 
-            <div class="hero-img-col">
-                
-                <div class="hero-img-frame">
-                    <img src="logo.png" alt="Surtido de golosinas">
+            <div class="hero-panel">
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-num">+15</div>
+                        <div class="hero-stat-label">Marcas</div>
+                    </div>
+                    <div class="hero-stats-divider"></div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-num">100%</div>
+                        <div class="hero-stat-label">Pedido online</div>
+                    </div>
                 </div>
-                
-        
+                <div class="hero-features">
+                    <div class="hero-feature">
+                        <div class="hero-feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="hero-feature-title">Mayorista y Minorista</div>
+                            <div class="hero-feature-sub">Precios competitivos para todos</div>
+                        </div>
+                    </div>
+                    <div class="hero-feature">
+                        <div class="hero-feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="hero-feature-title">Pedidos por WhatsApp</div>
+                            <div class="hero-feature-sub">Armá tu pedido y cerralo directo</div>
+                        </div>
+                    </div>
+                    <div class="hero-feature">
+                        <div class="hero-feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="9"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="hero-feature-title">Horario de atención</div>
+                            <div class="hero-feature-sub">Lun a Vie 08:00–20:30 hs</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </header>
 
-<div class="trust-bar">
-    <div class="trust-inner">
-        <div class="trust-item">
-            <div class="trust-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-            </div>
-            <div>
-                <div class="trust-label">Mayorista y Minorista</div>
-                <div class="trust-sub">Precios competitivos · Lun a Vie 08:00–20:30</div>
-            </div>
-        </div>
-        <div class="trust-item">
-            <div class="trust-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                </svg>
-            </div>
-            <div>
-                <div class="trust-label">Pedidos por WhatsApp</div>
-                <div class="trust-sub">Armá tu pedido y cerralo directo</div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- ── NUESTRAS MARCAS ──────────────────────────────── -->
 <section class="brands-strip">
@@ -1782,8 +1751,8 @@
 <footer id="contacto">
     <div class="footer-inner">
         <div>
-            <div class="footer-logo">Mar<span>chese</span> Golosinas</div>
-            <p class="footer-desc">Tu distribuidora mayorista de confianza en el Chaco. Los mejores productos al mejor precio del mercado.</p>
+            <div class="footer-logo"><span class="logo-marchese">Marchese</span> <span class="logo-golosinas">Golosinas</span></div>
+            <p class="footer-desc">Tu distribuidora mayorista de confianza. Los mejores productos al mejor precio del mercado.</p>
             <div class="footer-info">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="9" stroke="currentColor"/>
@@ -1813,7 +1782,7 @@
         <div>
             <div class="footer-col-title">Consultas</div>
             <input class="contact-input" type="text" id="contactName" placeholder="Tu nombre">
-            <textarea class="contact-input" id="contactMessage" rows="3" placeholder="Mensaje…"></textarea>
+            <textarea class="contact-input" id="contactMessage" rows="3" placeholder="Mensaje, deja tu información de contacto."></textarea>
             <button class="btn-send" id="contactSubmit">Enviar consulta</button>
             <div class="contact-feedback" id="contactFeedback"></div>
         </div>
@@ -1946,7 +1915,7 @@
         </a>
 
         <p class="qr-modal-note">
-            Al enviar el pedido, te contactará el equipo de Marchese Golosinas para coordinar la entrega.
+            Al enviar el pedido, te contactará el equipo de Marchese Golosinas para coordinar pago y entrega.
         </p>
     </div>
 </div>
