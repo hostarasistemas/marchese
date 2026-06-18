@@ -1,43 +1,3 @@
-// ──────────────────────────────────────────────────────────
-// Marchese Golosinas - Lógica del sitio (catálogo + carrito)
-// Todo el contenido (productos, categorías, marcas) se carga
-// en tiempo real desde Firestore. El panel de administración
-// que se construya después solo necesita escribir en las
-// colecciones que se describen abajo.
-//
-// ESTRUCTURA ESPERADA EN FIRESTORE:
-//
-// products (colección)
-//   - name:        string  (nombre del producto)         [requerido]
-//   - description: string  (descripción corta)
-//   - category:    string  (debe coincidir con el "name" de un doc de categories)
-//   - brand:       string  (debe coincidir con el "name" de un doc de brands)
-//   - tag:         string  (ej: "Pack x12", "Caja", "Bolsa") [opcional]
-//   - image:       string  (URL de la imagen, Firebase Storage o externa) [opcional]
-//   - active:      bool    (si es false, no se muestra) [opcional, default true]
-//   - order:       number  (orden de aparición) [opcional]
-//   - group:        string  (id en común entre variantes de un mismo producto,
-//                    ej: dos alfajores de la misma marca en blanco y negro
-//                    comparten el mismo "group") [opcional]
-//   - variantLabel: string  (nombre corto de la variante para mostrar en el
-//                    modal, ej: "Blanco" / "Negro". Si no se completa, se usa
-//                    el "tag" o el "name" del producto) [opcional]
-//
-// categories (colección)
-//   - name:   string
-//   - order:  number [opcional]
-//   - active: bool   [opcional, default true]
-//
-// brands (colección)
-//   - name:   string
-//   - order:  number [opcional]
-//   - active: bool   [opcional, default true]
-//
-// consultas (colección) -> se crea automáticamente desde el
-// formulario de contacto del footer:
-//   - name, message, createdAt
-// ──────────────────────────────────────────────────────────
-
 import { db } from "./firebase-config.js";
 import {
   collection,
@@ -61,10 +21,19 @@ import {
 // CONFIGURACIÓN
 // ──────────────────────────────────────────────────────────
 
-// TODO: reemplazar por el número real de WhatsApp del negocio.
+// Número real de WhatsApp del negocio.
 // Formato internacional, solo números (sin "+", espacios ni guiones).
-// Ejemplo Argentina: 54 9 + código de área sin 0 + número sin 15
-const WHATSAPP_NUMBER = "5493735000000";
+// Argentina: 54 9 + código de área (3735) + número (627215)
+const WHATSAPP_NUMBER = "5493735627215";
+
+// Clave de localStorage donde se guarda si el cliente compra
+// por mayor o por menor.
+const BUYER_TYPE_KEY = "marchese_buyer_type";
+const BUYER_TYPE_LABELS = { mayorista: "Mayorista", minorista: "Minorista" };
+const BUYER_TYPE_WA_LABELS = {
+  mayorista: "📦 PEDIDO MAYORISTA",
+  minorista: "🛍️ PEDIDO MINORISTA",
+};
 
 // ──────────────────────────────────────────────────────────
 // REFERENCIAS AL DOM
@@ -74,6 +43,20 @@ const productGrid = document.getElementById("productGrid");
 const categoryContainer = document.getElementById("categoryContainer");
 const brandsContainer = document.getElementById("brandsContainer");
 const searchInput = document.getElementById("searchInput");
+
+const filterCatSelectBtn = document.getElementById("filterCatSelectBtn");
+const filterCatSelectValue = document.getElementById("filterCatSelectValue");
+const filterBrandSelectBtn = document.getElementById("filterBrandSelectBtn");
+const filterBrandSelectValue = document.getElementById("filterBrandSelectValue");
+
+const filterSheetOverlay = document.getElementById("filterSheetOverlay");
+const filterSheet = document.getElementById("filterSheet");
+const filterSheetTitle = document.getElementById("filterSheetTitle");
+const filterSheetCloseBtn = document.getElementById("filterSheetCloseBtn");
+const filterSheetSearch = document.getElementById("filterSheetSearch");
+const filterSheetBody = document.getElementById("filterSheetBody");
+const filterSheetClearBtn = document.getElementById("filterSheetClearBtn");
+const filterSheetApplyBtn = document.getElementById("filterSheetApplyBtn");
 
 const cartBtn = document.getElementById("cartBtn");
 const cartBadge = document.getElementById("cartBadge");
@@ -107,6 +90,19 @@ const contactMessage = document.getElementById("contactMessage");
 const contactSubmit = document.getElementById("contactSubmit");
 const contactFeedback = document.getElementById("contactFeedback");
 
+const buyerModalOverlay = document.getElementById("buyerModalOverlay");
+const buyerModalCloseBtn = document.getElementById("buyerModalCloseBtn");
+const buyerOptionMayorista = document.getElementById("buyerOptionMayorista");
+const buyerOptionMinorista = document.getElementById("buyerOptionMinorista");
+
+const heroBuyerStatusText = document.getElementById("heroBuyerStatusText");
+const heroBuyerChangeBtn = document.getElementById("heroBuyerChangeBtn");
+
+const mobileMenuBuyerText = document.getElementById("mobileMenuBuyerText");
+const mobileMenuBuyerChangeBtn = document.getElementById("mobileMenuBuyerChangeBtn");
+
+const cartBuyerBadge = document.getElementById("cartBuyerBadge");
+
 // ──────────────────────────────────────────────────────────
 // ESTADO
 // ──────────────────────────────────────────────────────────
@@ -120,6 +116,12 @@ let productsLoaded = false;
 let activeCategory = "Todos";
 let activeBrands = new Set();
 let searchTerm = "";
+
+// Tipo de compra elegido por el cliente: "mayorista" | "minorista" | null
+let buyerType = null;
+
+// Tipo de hoja de filtros mobile abierta actualmente: "cat" | "brand" | null
+let filterSheetType = null;
 
 // ──────────────────────────────────────────────────────────
 // UTILIDADES
@@ -390,20 +392,10 @@ function renderCategories() {
     });
   }
 
-  // ── Chips mobile ─────────────────────────────────────────
-  const mobileCatChips = document.getElementById("mobileCatChips");
-  if (mobileCatChips) {
-    mobileCatChips.innerHTML = buttons.map((c) => {
-      const isActive = c.name === activeCategory;
-      const count = countFor(c.name);
-      return `<button class="filter-chip${isActive ? " active" : ""}" data-cat="${escapeHtml(c.name)}">${escapeHtml(c.name)}<span class="filter-chip-count">${count}</span></button>`;
-    }).join("");
-    // Listener registrado una sola vez en setupMobileChipListeners()
-  }
-  // Mostrar tira mobile si hay datos y estamos en mobile
-  const filterStrip = document.getElementById("filterMobileStrip");
-  if (filterStrip && window.matchMedia("(max-width: 960px)").matches) {
-    filterStrip.style.display = "flex";
+  // ── Selector compacto + hoja mobile ───────────────────────
+  updateFilterSelectLabels();
+  if (filterSheetType === "cat" && filterSheet.classList.contains("open")) {
+    renderFilterSheetBody(filterSheetSearch.value.trim().toLowerCase());
   }
 
   // Si la categoría activa ya no existe (fue borrada en el admin), volvemos a "Todos"
@@ -463,20 +455,10 @@ function renderBrands() {
     }
   }
 
-  // ── Chips mobile ─────────────────────────────────────────
-  const mobileBrandChips = document.getElementById("mobileBrandChips");
-  if (mobileBrandChips) {
-    if (brands.length === 0) {
-      mobileBrandChips.innerHTML = "";
-    } else {
-      const allInactive = activeBrands.size === 0;
-      mobileBrandChips.innerHTML =
-        `<button class="filter-chip${allInactive ? " active" : ""}" data-brand-all>Todas</button>` +
-        brands.map((name) =>
-          `<button class="filter-chip${activeBrands.has(name) ? " active" : ""}" data-brand="${escapeHtml(name)}">${escapeHtml(name)}</button>`
-        ).join("");
-      // Listener registrado una sola vez en setupMobileChipListeners()
-    }
+  // ── Selector compacto + hoja mobile ───────────────────────
+  updateFilterSelectLabels();
+  if (filterSheetType === "brand" && filterSheet.classList.contains("open")) {
+    renderFilterSheetBody(filterSheetSearch.value.trim().toLowerCase());
   }
 
   // Limpiar marcas activas que ya no existen
@@ -488,6 +470,223 @@ function renderBrands() {
     }
   });
   if (changed) renderProducts();
+}
+
+// ──────────────────────────────────────────────────────────
+// FILTROS MOBILE: barra selectora + hoja inferior
+// ──────────────────────────────────────────────────────────
+
+/** Normaliza texto para que la búsqueda dentro de la hoja ignore acentos. */
+function normalizeForSearch(str = "") {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Actualiza el texto y el estado "activo" de los dos botones selectores. */
+function updateFilterSelectLabels() {
+  if (!filterCatSelectBtn) return;
+
+  filterCatSelectValue.textContent = activeCategory;
+  filterCatSelectBtn.classList.toggle("has-active", activeCategory !== "Todos");
+
+  const brandCount = activeBrands.size;
+  filterBrandSelectValue.textContent =
+    brandCount === 0
+      ? "Todas"
+      : brandCount === 1
+      ? Array.from(activeBrands)[0]
+      : `${brandCount} marcas`;
+  filterBrandSelectBtn.classList.toggle("has-active", brandCount > 0);
+}
+
+/** Actualiza el botón "Ver N productos" según el filtrado actual. */
+function updateFilterSheetApplyLabel() {
+  if (!filterSheetApplyBtn) return;
+  const n = getFilteredProducts().length;
+  filterSheetApplyBtn.textContent = `Ver ${n} producto${n === 1 ? "" : "s"}`;
+}
+
+/** Dibuja el contenido de la hoja (categorías o marcas) según filterSheetType. */
+function renderFilterSheetBody(search = "") {
+  if (!filterSheetBody) return;
+  const q = normalizeForSearch(search.trim());
+
+  if (filterSheetType === "cat") {
+    const categories = getCategoryList();
+    const countFor = (catName) =>
+      catName === "Todos"
+        ? allProducts.length
+        : allProducts.filter((p) => p.category === catName).length;
+
+    const all = [{ name: "Todos" }, ...categories.map((name) => ({ name }))];
+    const filtered = q
+      ? all.filter((c) => normalizeForSearch(c.name).includes(q))
+      : all;
+
+    filterSheetBody.innerHTML = filtered.length
+      ? filtered
+          .map((c) => {
+            const isActive = c.name === activeCategory;
+            return `
+              <button class="filter-option${isActive ? " active" : ""}" data-cat="${escapeHtml(c.name)}">
+                <span>${escapeHtml(c.name)}</span>
+                <span class="filter-option-count">${countFor(c.name)}</span>
+              </button>`;
+          })
+          .join("")
+      : `<div class="filter-sheet-empty">No encontramos categorías para "${escapeHtml(search)}"</div>`;
+  } else if (filterSheetType === "brand") {
+    const brands = getBrandList();
+    const countFor = (name) => allProducts.filter((p) => p.brand === name).length;
+    const filtered = q
+      ? brands.filter((name) => normalizeForSearch(name).includes(q))
+      : brands;
+
+    const allOption = !q
+      ? `
+        <button class="filter-option-check${activeBrands.size === 0 ? " active" : ""}" data-brand-all>
+          <span class="filter-check-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </span>
+          <span class="filter-option-check-name">Todas</span>
+        </button>`
+      : "";
+
+    const brandOptions = filtered
+      .map((name) => {
+        const isActive = activeBrands.has(name);
+        return `
+          <button class="filter-option-check${isActive ? " active" : ""}" data-brand="${escapeHtml(name)}">
+            <span class="filter-check-box">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+            <span class="filter-option-check-name">${escapeHtml(name)}</span>
+            <span class="filter-option-count">${countFor(name)}</span>
+          </button>`;
+      })
+      .join("");
+
+    filterSheetBody.innerHTML =
+      allOption || brandOptions
+        ? allOption + brandOptions
+        : `<div class="filter-sheet-empty">No encontramos marcas para "${escapeHtml(search)}"</div>`;
+  }
+}
+
+function openFilterSheet(type) {
+  filterSheetType = type;
+  filterSheetTitle.textContent = type === "cat" ? "Categoría" : "Marca";
+  filterSheetSearch.value = "";
+  filterSheetSearch.placeholder = type === "cat" ? "Buscar categoría…" : "Buscar marca…";
+
+  renderFilterSheetBody();
+  updateFilterSheetApplyLabel();
+
+  filterSheetOverlay.classList.add("open");
+  filterSheet.classList.add("open");
+  filterCatSelectBtn.classList.toggle("open", type === "cat");
+  filterCatSelectBtn.setAttribute("aria-expanded", type === "cat" ? "true" : "false");
+  filterBrandSelectBtn.classList.toggle("open", type === "brand");
+  filterBrandSelectBtn.setAttribute("aria-expanded", type === "brand" ? "true" : "false");
+  lockBodyScroll();
+}
+
+function closeFilterSheet() {
+  if (!filterSheet.classList.contains("open")) return;
+  filterSheetOverlay.classList.remove("open");
+  filterSheet.classList.remove("open");
+  filterCatSelectBtn.classList.remove("open");
+  filterCatSelectBtn.setAttribute("aria-expanded", "false");
+  filterBrandSelectBtn.classList.remove("open");
+  filterBrandSelectBtn.setAttribute("aria-expanded", "false");
+  unlockBodyScroll();
+}
+
+function isFilterSheetOpen() {
+  return filterSheet.classList.contains("open");
+}
+
+function setupFilterSheetListeners() {
+  if (!filterCatSelectBtn) return; // no estamos en una página con filtros mobile
+
+  filterCatSelectBtn.addEventListener("click", () => {
+    if (filterSheetType === "cat" && isFilterSheetOpen()) {
+      closeFilterSheet();
+      return;
+    }
+    openFilterSheet("cat");
+  });
+
+  filterBrandSelectBtn.addEventListener("click", () => {
+    if (filterSheetType === "brand" && isFilterSheetOpen()) {
+      closeFilterSheet();
+      return;
+    }
+    openFilterSheet("brand");
+  });
+
+  filterSheetCloseBtn.addEventListener("click", closeFilterSheet);
+  filterSheetOverlay.addEventListener("click", (e) => {
+    if (e.target === filterSheetOverlay) closeFilterSheet();
+  });
+
+  filterSheetSearch.addEventListener(
+    "input",
+    debounce((e) => renderFilterSheetBody(e.target.value), 120)
+  );
+
+  // Selección dentro de la hoja (delegación)
+  filterSheetBody.addEventListener("click", (e) => {
+    if (filterSheetType === "cat") {
+      const btn = e.target.closest(".filter-option[data-cat]");
+      if (!btn) return;
+      activeCategory = btn.dataset.cat;
+      renderCategories();
+      renderProducts();
+      updateFilterSheetApplyLabel();
+      closeFilterSheet(); // selección única: aplica y cierra
+    } else if (filterSheetType === "brand") {
+      const allBtn = e.target.closest(".filter-option-check[data-brand-all]");
+      if (allBtn) {
+        activeBrands.clear();
+      } else {
+        const btn = e.target.closest(".filter-option-check[data-brand]");
+        if (!btn) return;
+        const brand = btn.dataset.brand;
+        if (activeBrands.has(brand)) {
+          activeBrands.delete(brand);
+        } else {
+          activeBrands.add(brand);
+        }
+      }
+      renderBrands();
+      renderProducts();
+      renderFilterSheetBody(filterSheetSearch.value);
+      updateFilterSheetApplyLabel();
+      // multi-selección: la hoja queda abierta para elegir varias marcas
+    }
+  });
+
+  filterSheetClearBtn.addEventListener("click", () => {
+    if (filterSheetType === "cat") {
+      activeCategory = "Todos";
+      renderCategories();
+    } else if (filterSheetType === "brand") {
+      activeBrands.clear();
+      renderBrands();
+    }
+    renderProducts();
+    renderFilterSheetBody(filterSheetSearch.value);
+    updateFilterSheetApplyLabel();
+  });
+
+  filterSheetApplyBtn.addEventListener("click", closeFilterSheet);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -867,6 +1066,103 @@ function setupQrModalListeners() {
 }
 
 // ──────────────────────────────────────────────────────────
+// TIPO DE COMPRA (mayorista / minorista)
+// ──────────────────────────────────────────────────────────
+
+function getSavedBuyerType() {
+  try {
+    const saved = localStorage.getItem(BUYER_TYPE_KEY);
+    return saved === "mayorista" || saved === "minorista" ? saved : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveBuyerType(type) {
+  try {
+    localStorage.setItem(BUYER_TYPE_KEY, type);
+  } catch (error) {
+    // Si el navegador bloquea localStorage, seguimos solo con el estado en memoria.
+  }
+}
+
+function updateBuyerTypeUI() {
+  const label = buyerType ? BUYER_TYPE_LABELS[buyerType] : null;
+  const statusText = label ? `Comprando como ${label}` : "Elegí cómo comprar";
+
+  if (heroBuyerStatusText) heroBuyerStatusText.textContent = statusText;
+  if (mobileMenuBuyerText) mobileMenuBuyerText.textContent = statusText;
+  if (cartBuyerBadge) cartBuyerBadge.textContent = label || "Elegir";
+
+  if (buyerOptionMayorista) buyerOptionMayorista.classList.toggle("active", buyerType === "mayorista");
+  if (buyerOptionMinorista) buyerOptionMinorista.classList.toggle("active", buyerType === "minorista");
+
+  // El botón de cerrar el modal solo se muestra si ya hay un tipo elegido
+  // (la primera vez es obligatorio elegir uno).
+  if (buyerModalCloseBtn) buyerModalCloseBtn.style.display = buyerType ? "flex" : "none";
+}
+
+function openBuyerTypeModal() {
+  if (!buyerModalOverlay) return;
+  updateBuyerTypeUI();
+  buyerModalOverlay.classList.add("open");
+  lockBodyScroll();
+}
+
+function closeBuyerTypeModal() {
+  if (!buyerModalOverlay) return;
+  // No se puede cerrar sin elegir un tipo de compra la primera vez.
+  if (!buyerType) return;
+  buyerModalOverlay.classList.remove("open");
+  unlockBodyScroll();
+}
+
+function selectBuyerType(type) {
+  buyerType = type;
+  saveBuyerType(type);
+  updateBuyerTypeUI();
+  buyerModalOverlay.classList.remove("open");
+  unlockBodyScroll();
+  showToast(`Modo ${BUYER_TYPE_LABELS[type]} activado`, "success", "Lo vamos a tener en cuenta al recibir tu pedido");
+}
+
+function closeMobileMenuForBuyerChange() {
+  const mobileMenu = document.getElementById("mobileMenu");
+  const mobileMenuOverlay = document.getElementById("mobileMenuOverlay");
+  if (mobileMenu) mobileMenu.classList.remove("open");
+  if (mobileMenuOverlay) mobileMenuOverlay.classList.remove("open");
+}
+
+function setupBuyerTypeListeners() {
+  if (!buyerModalOverlay) return;
+
+  if (buyerOptionMayorista) {
+    buyerOptionMayorista.addEventListener("click", () => selectBuyerType("mayorista"));
+  }
+  if (buyerOptionMinorista) {
+    buyerOptionMinorista.addEventListener("click", () => selectBuyerType("minorista"));
+  }
+  if (buyerModalCloseBtn) {
+    buyerModalCloseBtn.addEventListener("click", closeBuyerTypeModal);
+  }
+  buyerModalOverlay.addEventListener("click", (e) => {
+    if (e.target === buyerModalOverlay) closeBuyerTypeModal();
+  });
+  if (heroBuyerChangeBtn) {
+    heroBuyerChangeBtn.addEventListener("click", openBuyerTypeModal);
+  }
+  if (mobileMenuBuyerChangeBtn) {
+    mobileMenuBuyerChangeBtn.addEventListener("click", () => {
+      closeMobileMenuForBuyerChange();
+      openBuyerTypeModal();
+    });
+  }
+  if (cartBuyerBadge) {
+    cartBuyerBadge.addEventListener("click", openBuyerTypeModal);
+  }
+}
+
+// ──────────────────────────────────────────────────────────
 // WHATSAPP
 // ──────────────────────────────────────────────────────────
 
@@ -874,7 +1170,11 @@ function buildWhatsAppMessage() {
   const cart = getCart();
   const items = Object.values(cart);
 
-  let message = "¡Hola! 👋 Quiero hacer el siguiente pedido:\n\n";
+  let message = "";
+  if (buyerType && BUYER_TYPE_WA_LABELS[buyerType]) {
+    message += `*${BUYER_TYPE_WA_LABELS[buyerType]}*\n\n`;
+  }
+  message += "¡Hola! 👋 Quiero hacer el siguiente pedido:\n\n";
   items.forEach((item) => {
     message += `▪ ${item.qty}x ${item.name}`;
     if (item.category) message += ` (${item.category})`;
@@ -889,6 +1189,12 @@ function sendOrderToWhatsApp() {
   const cart = getCart();
   if (Object.keys(cart).length === 0) {
     showToast("Pedido vacío", "error", "Agregá productos antes de enviar");
+    return;
+  }
+
+  if (!buyerType) {
+    showToast("Elegí cómo comprar", "error", "Decinos si es por mayor o por menor antes de enviar");
+    openBuyerTypeModal();
     return;
   }
 
@@ -963,46 +1269,6 @@ async function handleContactSubmit() {
   } finally {
     contactSubmit.disabled = false;
     contactSubmit.textContent = "Enviar consulta";
-  }
-}
-
-// ──────────────────────────────────────────────────────────
-// LISTENERS MOBILE CHIPS (se registran una sola vez)
-// ──────────────────────────────────────────────────────────
-
-function setupMobileChipListeners() {
-  const mobileCatChips = document.getElementById("mobileCatChips");
-  if (mobileCatChips) {
-    mobileCatChips.addEventListener("click", (e) => {
-      const chip = e.target.closest(".filter-chip[data-cat]");
-      if (!chip) return;
-      activeCategory = chip.dataset.cat;
-      renderCategories();
-      renderProducts();
-    });
-  }
-
-  const mobileBrandChips = document.getElementById("mobileBrandChips");
-  if (mobileBrandChips) {
-    mobileBrandChips.addEventListener("click", (e) => {
-      const allChip = e.target.closest(".filter-chip[data-brand-all]");
-      if (allChip) {
-        activeBrands.clear();
-        renderBrands();
-        renderProducts();
-        return;
-      }
-      const chip = e.target.closest(".filter-chip[data-brand]");
-      if (!chip) return;
-      const brand = chip.dataset.brand;
-      if (activeBrands.has(brand)) {
-        activeBrands.delete(brand);
-      } else {
-        activeBrands.add(brand);
-      }
-      renderBrands();
-      renderProducts();
-    });
   }
 }
 
@@ -1173,12 +1439,20 @@ function setupEventListeners() {
   // Cerrar carrito / modal / lightbox / dialog con tecla Escape
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      if (buyerModalOverlay && buyerModalOverlay.classList.contains("open")) {
+        closeBuyerTypeModal();
+        return;
+      }
       if (clearCartDialogOverlay.classList.contains("open")) {
         clearCartDialogOverlay.classList.remove("open");
         return;
       }
       if (lightboxOverlay.classList.contains("open")) {
         closeLightbox();
+        return;
+      }
+      if (isFilterSheetOpen()) {
+        closeFilterSheet();
         return;
       }
       closeCart();
@@ -1192,12 +1466,20 @@ function setupEventListeners() {
 // ──────────────────────────────────────────────────────────
 
 function init() {
+  buyerType = getSavedBuyerType();
+  updateBuyerTypeUI();
   updateCartBadge();
-  setupMobileChipListeners();
+  setupFilterSheetListeners();
   setupEventListeners();
+  setupBuyerTypeListeners();
   setupQrModalListeners();
   setupWaWebBtnListener();
   initFirestoreListeners();
+
+  // Si todavía no eligió mayorista/minorista, se le pide apenas entra al sitio.
+  if (!buyerType) {
+    setTimeout(openBuyerTypeModal, 450);
+  }
 }
 
 init();
