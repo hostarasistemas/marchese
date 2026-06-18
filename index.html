@@ -70,6 +70,9 @@
         }
         .logo-name .logo-marchese { color: var(--amber); }
         .logo-name .logo-golosinas { color: var(--accent-blue); }
+        .logo-img {
+            height: 42px; width: auto; display: block;
+        }
         .logo-tag {
             font-size: 0.7rem; font-weight: 600;
             letter-spacing: 0.12em; text-transform: uppercase;
@@ -133,10 +136,9 @@
         }
         .mobile-menu.open { transform: translateX(0); }
         .mobile-menu-logo {
-            font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.2rem;
-            color: var(--text); letter-spacing: -0.02em; margin-bottom: 2rem;
+            height: 34px; width: auto; display: block;
+            margin-bottom: 2rem;
         }
-        .mobile-menu-logo span { color: var(--amber); }
         .mobile-menu-links { display: flex; flex-direction: column; gap: 0.25rem; }
         .mobile-menu-links a {
             font-size: 1rem; font-weight: 600; color: var(--text-mid);
@@ -540,11 +542,9 @@
             display: grid; grid-template-columns: 1.6fr 1fr 1.5fr; gap: 3rem;
         }
         .footer-logo {
-            font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 900;
-            letter-spacing: -0.02em; margin-bottom: 0.75rem;
+            height: 42px; width: auto; display: block;
+            margin-bottom: 0.75rem;
         }
-        .footer-logo .logo-marchese { color: var(--amber); }
-        .footer-logo .logo-golosinas { color: var(--accent-blue); }
         .footer-desc { font-size: 0.85rem; color: #888; line-height: 1.65; margin-bottom: 1.25rem; }
         .footer-info { font-size: 0.8rem; color: #888; display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.6rem; }
         .footer-info svg { flex-shrink: 0; margin-top: 2px; color: var(--amber-mid); }
@@ -592,8 +592,8 @@
             aside { display: block !important; }
             .filter-panel-mobile { display: block !important; }
             .filter-toggle-bar { display: none !important; }
-            /* Tira mobile oculta en desktop */
-            .filter-mobile-strip { display: none !important; top: 64px; }
+            /* Barra selectora mobile oculta en desktop */
+            .filter-select-bar { display: none !important; }
         }
 
         /* ══════════════════════════════════════════════════
@@ -606,8 +606,8 @@
             .mobile-menu-overlay { display: block; }
             .logo-name { font-size: 1.3rem; }
 
-            /* Tira de filtros mobile: visible */
-            .filter-mobile-strip { display: flex; }
+            /* Barra selectora de filtros mobile: visible */
+            .filter-select-bar { display: flex; }
 
             /* Sidebar desktop: oculto en mobile — los filtros van en la tira */
             aside { display: none !important; }
@@ -658,6 +658,7 @@
 
             .logo-name { font-size: 1.15rem; }
             .logo-tag { display: none; }
+            .logo-img { height: 32px; }
 
             /* Carrito: solo ícono + badge, sin texto */
             .cart-btn { padding: 0.45rem 0.6rem; font-size: 0; gap: 0; }
@@ -1337,6 +1338,147 @@
         .custom-dialog-btn.confirm:hover { background: #a93226; }
 
         /* ══════════════════════════════════════════════════
+           MODAL TIPO DE COMPRA (mayorista / minorista)
+        ══════════════════════════════════════════════════ */
+        .buyer-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(20,18,15,0.58);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 250; opacity: 0; pointer-events: none;
+            transition: opacity .28s;
+            display: flex; align-items: center; justify-content: center;
+            padding: 1.25rem;
+        }
+        .buyer-modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .buyer-modal {
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 28px 72px rgba(0,0,0,0.22);
+            width: 100%; max-width: 520px;
+            padding: 2.25rem 2rem 2rem;
+            position: relative; text-align: center;
+            transform: scale(0.94) translateY(12px);
+            transition: transform .28s cubic-bezier(.22,1,.36,1);
+        }
+        .buyer-modal-overlay.open .buyer-modal { transform: scale(1) translateY(0); }
+
+        .buyer-modal-close {
+            position: absolute; top: 1rem; right: 1rem;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 50%; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-mid);
+            transition: background .2s, color .2s;
+        }
+        .buyer-modal-close:hover { background: var(--border); color: var(--text); }
+
+        .buyer-modal-badge {
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            background: var(--amber-light); border: 1px solid #F5D08A;
+            border-radius: 99px; padding: 0.28rem 0.85rem;
+            font-size: 0.68rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: 1rem;
+        }
+        .buyer-modal-badge-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--amber); flex-shrink: 0;
+        }
+
+        .buyer-modal-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.6rem; font-weight: 900;
+            color: var(--text); letter-spacing: -0.025em;
+            line-height: 1.15; margin-bottom: 0.6rem;
+        }
+        .buyer-modal-subtitle {
+            font-size: 0.875rem; color: var(--text-mid);
+            line-height: 1.6; max-width: 400px;
+            margin: 0 auto 1.75rem;
+        }
+
+        .buyer-options { display: flex; gap: 1rem; margin-bottom: 1.1rem; }
+        .buyer-option-card {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+            background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px;
+            padding: 1.5rem 1rem; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: border-color .2s, background .2s, transform .15s;
+        }
+        .buyer-option-card:hover {
+            border-color: var(--amber); background: var(--amber-light);
+            transform: translateY(-2px);
+        }
+        .buyer-option-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            background: var(--white); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--amber); transition: background .2s, border-color .2s;
+        }
+        .buyer-option-card:hover .buyer-option-icon { border-color: #F5D08A; }
+        .buyer-option-card.active {
+            border-color: var(--amber); background: var(--amber-light);
+        }
+        .buyer-option-card.active .buyer-option-icon {
+            border-color: #F5D08A; background: var(--amber); color: #fff;
+        }
+        .buyer-option-title {
+            font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.05rem;
+            color: var(--text);
+        }
+        .buyer-option-desc { font-size: 0.75rem; color: var(--text-mid); line-height: 1.4; }
+
+        .buyer-modal-note { font-size: 0.7rem; color: var(--muted); line-height: 1.5; }
+
+        @media (max-width: 480px) {
+            .buyer-options { flex-direction: column; }
+            .buyer-modal { padding: 1.75rem 1.25rem 1.5rem; }
+        }
+
+        /* ── Indicador de tipo de compra (hero / menú mobile / carrito) ── */
+        .buyer-status-pill {
+            display: inline-flex; align-items: center; gap: 0.6rem;
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: 99px; padding: 0.35rem 0.4rem 0.35rem 0.9rem;
+            font-size: 0.8rem; font-weight: 600; color: var(--text-mid);
+            margin-bottom: 1.25rem;
+        }
+        .buyer-status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--amber); flex-shrink: 0;
+        }
+        .buyer-status-change {
+            background: var(--text); color: #fff; border: none; border-radius: 99px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.7rem; font-weight: 700; padding: 0.32rem 0.75rem;
+            cursor: pointer; transition: background .2s; white-space: nowrap;
+        }
+        .buyer-status-change:hover { background: var(--amber); }
+
+        .mobile-menu-buyer {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            padding: 0.65rem 0.7rem 0.65rem 0.9rem; margin-bottom: 1.5rem; gap: 0.5rem;
+        }
+        .mobile-menu-buyer-info {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.8rem; font-weight: 700; color: var(--text);
+        }
+
+        .cart-drawer-header-left { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+        .cart-buyer-badge {
+            background: var(--amber-light); border: 1px solid #F5D08A; color: var(--amber);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.65rem; font-weight: 800; letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding: 0.25rem 0.6rem; border-radius: 99px;
+            cursor: pointer; transition: background .15s; white-space: nowrap;
+        }
+        .cart-buyer-badge:hover { background: #F5D08A; }
+
+        /* ══════════════════════════════════════════════════
            SELECTOR DE CANTIDAD EN MODAL (antes de agregar)
         ══════════════════════════════════════════════════ */
         .modal-qty-row {
@@ -1379,66 +1521,156 @@
         }
         .btn-cart-qty:hover { background: #cf7f08; }
 
-        /* ── FILTROS MOBILE: tiras siempre visibles ─────── */
-        .filter-mobile-strip {
-            display: none; /* solo mobile — activado en media query */
-            flex-direction: column;
-            gap: 0;
+        /* ── FILTROS MOBILE: barra selectora + hoja inferior ─ */
+        .filter-select-bar {
+            gap: 0.6rem;
             background: var(--white);
             border-bottom: 1px solid var(--border);
+            padding: 0.65rem 0.85rem;
             width: 100%;
         }
-        .filter-strip-row {
-            display: flex;
-            align-items: center;
-            gap: 0;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
-            padding: 0.6rem 0.85rem;
-        }
-        .filter-strip-row::-webkit-scrollbar { display: none; }
-        .filter-strip-row + .filter-strip-row {
-            border-top: 1px solid var(--border);
-        }
-        .filter-strip-label {
-            font-size: 0.6rem; font-weight: 700;
-            letter-spacing: 0.12em; text-transform: uppercase;
-            color: var(--muted); white-space: nowrap;
-            padding-right: 0.75rem; flex-shrink: 0;
-        }
-        .filter-chips {
-            display: flex; gap: 0.4rem; flex-wrap: nowrap;
-        }
-        .filter-chip {
-            flex-shrink: 0;
-            white-space: nowrap;
-            scroll-snap-align: start;
-            padding: 0.35rem 0.75rem;
-            border-radius: 99px;
-            border: 1.5px solid var(--border);
+        .filter-select-btn {
+            flex: 1; min-width: 0;
+            display: flex; align-items: center; justify-content: center; gap: 0.4rem;
             background: var(--surface);
-            color: var(--text-mid);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 0.6rem 0.6rem;
             font-family: 'DM Sans', sans-serif;
-            font-size: 0.78rem; font-weight: 600;
+            font-size: 0.8rem; font-weight: 600;
+            color: var(--text);
             cursor: pointer;
             transition: border-color .15s, background .15s, color .15s;
         }
-        .filter-chip:hover { border-color: var(--amber-mid); }
-        .filter-chip.active {
+        .filter-select-btn:hover { border-color: var(--amber-mid); }
+        .filter-select-label { color: var(--muted); font-weight: 500; flex-shrink: 0; }
+        .filter-select-value {
+            min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .filter-select-btn svg { flex-shrink: 0; transition: transform .2s; }
+        .filter-select-btn.open svg { transform: rotate(180deg); }
+        .filter-select-btn.has-active {
             background: var(--amber-light);
             border-color: var(--amber);
             color: var(--amber);
         }
-        /* badge de conteo en chip */
-        .filter-chip-count {
-            display: inline-block;
-            font-size: 0.65rem; font-weight: 700;
-            color: var(--muted); background: var(--border);
-            border-radius: 99px; padding: 0 0.35rem;
-            margin-left: 0.25rem; vertical-align: middle;
+        .filter-select-btn.has-active .filter-select-label { color: var(--amber); }
+
+        /* Hoja inferior reutilizable para categorías y marcas */
+        .filter-sheet-overlay {
+            position: fixed; inset: 0; background: rgba(20,18,15,0.45);
+            backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+            z-index: 92; opacity: 0; pointer-events: none; transition: opacity .25s;
         }
+        .filter-sheet-overlay.open { opacity: 1; pointer-events: auto; }
+        .filter-sheet {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            width: 100%; max-height: 78vh;
+            background: var(--bg);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -12px 40px rgba(0,0,0,0.18);
+            z-index: 93;
+            display: flex; flex-direction: column;
+            transform: translateY(100%);
+            transition: transform .3s ease;
+            overscroll-behavior: contain;
+        }
+        .filter-sheet::before {
+            content: '';
+            display: block; width: 40px; height: 4px;
+            background: var(--border-dark); border-radius: 2px;
+            margin: 0.75rem auto 0; flex-shrink: 0;
+        }
+        .filter-sheet.open { transform: translateY(0); }
+        .filter-sheet-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.85rem 1.1rem 0.6rem;
+        }
+        .filter-sheet-title {
+            font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.05rem; color: var(--text);
+        }
+        .filter-sheet-close-btn {
+            background: var(--surface); border: none; border-radius: 50%;
+            width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-mid); transition: background .2s;
+        }
+        .filter-sheet-close-btn:hover { background: var(--border); color: var(--text); }
+        .filter-sheet-search-wrap {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px;
+            margin: 0 1.1rem 0.75rem; padding: 0.55rem 0.75rem; flex-shrink: 0;
+        }
+        .filter-sheet-search-wrap svg { color: var(--muted); flex-shrink: 0; }
+        .filter-sheet-search {
+            border: none; background: transparent; outline: none; width: 100%;
+            font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--text);
+        }
+        .filter-sheet-search::placeholder { color: var(--muted); }
+        .filter-sheet-body {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 0.25rem 0.85rem 0.5rem;
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .filter-option {
+            width: 100%; text-align: left;
+            display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+            background: transparent; border: none; border-radius: 9px;
+            padding: 0.7rem 0.65rem;
+            font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+            color: var(--text-mid); cursor: pointer; transition: background .15s, color .15s;
+        }
+        .filter-option:hover { background: var(--surface); }
+        .filter-option.active { background: var(--amber-light); color: var(--amber); font-weight: 700; }
+        .filter-option-count { font-size: 0.75rem; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+        .filter-option.active .filter-option-count { color: var(--amber); }
+        .filter-option-check {
+            width: 100%; display: flex; align-items: center; gap: 0.7rem;
+            background: transparent; border: none; border-radius: 9px;
+            padding: 0.65rem 0.65rem; cursor: pointer; transition: background .15s;
+            font-family: 'DM Sans', sans-serif; text-align: left;
+        }
+        .filter-option-check:hover { background: var(--surface); }
+        .filter-option-check.active { background: var(--amber-light); }
+        .filter-check-box {
+            width: 19px; height: 19px; border-radius: 6px; border: 1.5px solid var(--border-dark);
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            background: var(--white); transition: background .15s, border-color .15s; color: #fff;
+        }
+        .filter-check-box svg { opacity: 0; }
+        .filter-option-check.active .filter-check-box {
+            background: var(--amber); border-color: var(--amber);
+        }
+        .filter-option-check.active .filter-check-box svg { opacity: 1; }
+        .filter-option-check-name {
+            flex: 1; min-width: 0; font-size: 0.9rem; color: var(--text-mid); font-weight: 500;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .filter-option-check.active .filter-option-check-name { color: var(--text); font-weight: 600; }
+        .filter-option-check .filter-option-count { color: var(--muted); }
+        .filter-option-check.active .filter-option-count { color: var(--amber); }
+        .filter-sheet-empty {
+            padding: 1.75rem 0.5rem; text-align: center; color: var(--muted); font-size: 0.85rem;
+        }
+        .filter-sheet-footer {
+            border-top: 1px solid var(--border);
+            padding: 0.85rem 1.1rem;
+            padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+            display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+            background: var(--white); flex-shrink: 0;
+        }
+        .filter-sheet-clear {
+            background: none; border: none; color: var(--text-mid);
+            font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; padding: 0.5rem 0.25rem;
+        }
+        .filter-sheet-clear:hover { color: var(--red); }
+        .filter-sheet-apply {
+            background: var(--amber); color: #1A1814; border: none;
+            font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 700;
+            padding: 0.7rem 1.4rem; border-radius: 99px; cursor: pointer; transition: background .2s;
+            flex-shrink: 0; white-space: nowrap;
+        }
+        .filter-sheet-apply:hover { background: var(--amber-mid); }
         /* ── CONTACT FORM FEEDBACK ─────────────────────────*/
         .contact-feedback {
             font-size: 0.8rem; font-weight: 600; margin-top: 0.5rem;
@@ -1514,8 +1746,7 @@
         </button>
 
         <a href="#" class="logo">
-            <span class="logo-name"><span class="logo-marchese">Marchese</span> <span class="logo-golosinas">Golosinas</span></span>
-            
+            <img src="nuevologo.png" alt="Marchese Golosinas" class="logo-img">
         </a>
 
         <div class="nav-links">
@@ -1539,7 +1770,14 @@
 <!-- ── MOBILE MENU ────────────────────────────────────── -->
 <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
 <div class="mobile-menu" id="mobileMenu">
-    <div class="mobile-menu-logo">Mar<span>chese</span> Golosinas</div>
+    <img src="nuevologo.png" alt="Marchese Golosinas" class="mobile-menu-logo">
+    <div class="mobile-menu-buyer" id="mobileMenuBuyer">
+        <div class="mobile-menu-buyer-info">
+            <span class="buyer-status-dot"></span>
+            <span id="mobileMenuBuyerText">Elegí cómo comprar</span>
+        </div>
+        <button type="button" class="buyer-status-change" id="mobileMenuBuyerChangeBtn">Cambiar</button>
+    </div>
     <nav class="mobile-menu-links">
         <a href="#" id="mobileMenuClose1">Inicio</a>
         <a href="#catalogo" id="mobileMenuClose2">Catálogo</a>
@@ -1554,6 +1792,11 @@
                 <div class="eyebrow-pill">
                     <span class="eyebrow-dot"></span>
                     Villa Ángela, Chaco
+                </div>
+                <div class="buyer-status-pill" id="heroBuyerStatus">
+                    <span class="buyer-status-dot"></span>
+                    <span id="heroBuyerStatusText">Elegí cómo comprar</span>
+                    <button type="button" class="buyer-status-change" id="heroBuyerChangeBtn">Cambiar</button>
                 </div>
                 <h1 class="hero-title">
                     Tu proveedor<br>de <span class="wave">confianza</span>
@@ -1677,17 +1920,47 @@
     </div>
 </section>
 
-<div class="filter-mobile-strip" id="filterMobileStrip">
-    <div class="filter-strip-row">
-        <span class="filter-strip-label">Cat.</span>
-        <div class="filter-chips" id="mobileCatChips">
-            <button class="filter-chip active" data-cat="Todos">Todos</button>
+<div class="filter-select-bar" id="filterSelectBar">
+    <button class="filter-select-btn" id="filterCatSelectBtn" type="button" aria-haspopup="dialog" aria-expanded="false">
+        <span class="filter-select-label">Categoría</span>
+        <span class="filter-select-value" id="filterCatSelectValue">Todos</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+    <button class="filter-select-btn" id="filterBrandSelectBtn" type="button" aria-haspopup="dialog" aria-expanded="false">
+        <span class="filter-select-label">Marca</span>
+        <span class="filter-select-value" id="filterBrandSelectValue">Todas</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+</div>
+
+<!-- ── HOJA DE FILTROS (categorías / marcas) — solo mobile ──── -->
+<div class="filter-sheet-overlay" id="filterSheetOverlay">
+    <div class="filter-sheet" id="filterSheet" role="dialog" aria-modal="true" aria-labelledby="filterSheetTitle">
+        <div class="filter-sheet-header">
+            <span class="filter-sheet-title" id="filterSheetTitle">Categoría</span>
+            <button class="filter-sheet-close-btn" id="filterSheetCloseBtn" aria-label="Cerrar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
-    </div>
-    <div class="filter-strip-row">
-        <span class="filter-strip-label">Marca</span>
-        <div class="filter-chips" id="mobileBrandChips">
-            <!-- chips cargados por JS -->
+        <div class="filter-sheet-search-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <circle cx="11" cy="11" r="7"/>
+                <path stroke-linecap="round" d="M16.5 16.5l3.5 3.5"/>
+            </svg>
+            <input type="text" class="filter-sheet-search" id="filterSheetSearch" placeholder="Buscar…">
+        </div>
+        <div class="filter-sheet-body" id="filterSheetBody">
+            <!-- se completa dinámicamente -->
+        </div>
+        <div class="filter-sheet-footer">
+            <button class="filter-sheet-clear" id="filterSheetClearBtn" type="button">Limpiar</button>
+            <button class="filter-sheet-apply" id="filterSheetApplyBtn" type="button">Ver productos</button>
         </div>
     </div>
 </div>
@@ -1751,7 +2024,7 @@
 <footer id="contacto">
     <div class="footer-inner">
         <div>
-            <div class="footer-logo"><span class="logo-marchese">Marchese</span> <span class="logo-golosinas">Golosinas</span></div>
+            <img src="nuevologo.png" alt="Marchese Golosinas" class="footer-logo">
             <p class="footer-desc">Tu distribuidora mayorista de confianza. Los mejores productos al mejor precio del mercado.</p>
             <div class="footer-info">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1798,7 +2071,10 @@
 <div class="cart-overlay" id="cartOverlay"></div>
 <div class="cart-drawer" id="cartDrawer">
     <div class="cart-drawer-header">
-        <span class="cart-drawer-title">Mi pedido</span>
+        <div class="cart-drawer-header-left">
+            <span class="cart-drawer-title">Mi pedido</span>
+            <button type="button" class="cart-buyer-badge" id="cartBuyerBadge" title="Cambiar tipo de compra">Minorista</button>
+        </div>
         <button class="cart-close-btn" id="cartCloseBtn" aria-label="Cerrar carrito">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -1850,6 +2126,50 @@
             </svg>
         </button>
         <img id="lightboxImg" src="" alt="">
+    </div>
+</div>
+
+<!-- ── MODAL TIPO DE COMPRA (mayorista / minorista) ──── -->
+<div class="buyer-modal-overlay" id="buyerModalOverlay">
+    <div class="buyer-modal">
+        <button class="buyer-modal-close" id="buyerModalCloseBtn" aria-label="Cerrar" style="display:none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+
+        <div class="buyer-modal-badge">
+            <span class="buyer-modal-badge-dot"></span>
+            Antes de empezar
+        </div>
+
+        <h2 class="buyer-modal-title">¿Cómo querés comprar?</h2>
+        <p class="buyer-modal-subtitle">
+            Elegí una opción para que sepamos qué precios enviarte cuando recibamos tu pedido. El catálogo de productos es el mismo en los dos casos.
+        </p>
+
+        <div class="buyer-options">
+            <button type="button" class="buyer-option-card" id="buyerOptionMayorista" data-type="mayorista">
+                <div class="buyer-option-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9-4 9 4-9 4-9-4zm0 0v10l9 4 9-4V7M12 11v10"/>
+                    </svg>
+                </div>
+                <div class="buyer-option-title">Mayorista</div>
+                <div class="buyer-option-desc">Compras por cantidad, precio por mayor</div>
+            </button>
+            <button type="button" class="buyer-option-card" id="buyerOptionMinorista" data-type="minorista">
+                <div class="buyer-option-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 8h12l1 13H5L6 8zM9 8V6a3 3 0 116 0v2"/>
+                    </svg>
+                </div>
+                <div class="buyer-option-title">Minorista</div>
+                <div class="buyer-option-desc">Compras de menor cantidad, precio por menor</div>
+            </button>
+        </div>
+
+        <p class="buyer-modal-note">Podés cambiar esta opción cuando quieras desde el botón "Cambiar".</p>
     </div>
 </div>
 
@@ -1984,8 +2304,8 @@
     });
   })();
 
-  // Los chips de mobile (categorías y marcas) son renderizados
-  // directamente por main.js en renderCategories() y renderBrands().
+  // La barra selectora y la hoja de filtros mobile (categorías y marcas)
+  // son renderizadas y controladas directamente por main.js.
 
   // ── Scroll To Top ────────────────────────────────────────
   (function () {
