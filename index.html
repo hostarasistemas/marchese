@@ -212,46 +212,124 @@
         }
         .btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
 
-        /* Panel lateral del hero (reemplaza la imagen) */
-        .hero-panel {
-            background: var(--white);
-            border: 1px solid var(--border);
+        /* ══════════════════════════════════════════════════
+           CARRUSEL PUBLICITARIO
+        ══════════════════════════════════════════════════ */
+        .hero-carousel {
+            position: relative;
             border-radius: 20px;
-            padding: 1.75rem;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
             box-shadow: 0 20px 60px rgba(0,0,0,0.06);
+            aspect-ratio: 4/3;
+            min-height: 280px;
         }
-        .hero-stats {
-            display: flex; align-items: center; gap: 1.5rem;
-            padding-bottom: 1.5rem; margin-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border);
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
-        .hero-stat { flex: 1; min-width: 0; }
-        .hero-stat-num {
-            font-family: 'Fraunces', serif;
-            font-size: 2rem; font-weight: 900;
-            color: var(--amber); line-height: 1;
-            letter-spacing: -0.02em;
+        .carousel-slide {
+            flex-shrink: 0;
+            width: 100%;
+            height: 100%;
         }
-        .hero-stat-label {
-            font-size: 0.78rem; font-weight: 600;
-            color: var(--text-mid); margin-top: 0.35rem;
+        .carousel-slide img {
+            width: 100%; height: 100%;
+            object-fit: cover; display: block;
         }
-        .hero-stats-divider { width: 1px; height: 36px; background: var(--border); flex-shrink: 0; }
+        /* Skeleton mientras carga */
+        .carousel-skeleton {
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shine 1.5s infinite;
+        }
+        .carousel-skeleton.hidden { display: none; }
+        @keyframes skeleton-shine {
+            0%   { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+        /* Flechas */
+        .carousel-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 38px; height: 38px; border-radius: 50%;
+            background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
+            border: 1px solid var(--border); color: var(--text);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 2; opacity: 0;
+            transition: opacity .2s, background .2s, transform .2s;
+        }
+        .carousel-arrow:hover { background: var(--white); }
+        .hero-carousel:hover .carousel-arrow { opacity: 1; }
+        .carousel-prev { left: 0.75rem; }
+        .carousel-next { right: 0.75rem; }
+        /* Dots */
+        .carousel-dots {
+            position: absolute; bottom: 0.75rem; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 0.4rem; z-index: 2;
+        }
+        .carousel-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            border: none; cursor: pointer; padding: 0;
+            transition: background .2s, transform .2s;
+        }
+        .carousel-dot.active {
+            background: #fff;
+            transform: scale(1.25);
+        }
+        /* Estado vacío */
+        .carousel-empty {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 0.75rem; color: var(--muted);
+            font-size: 0.85rem; font-weight: 500;
+        }
 
-        .hero-features { display: flex; flex-direction: column; }
-        .hero-feature {
-            display: flex; align-items: flex-start; gap: 0.9rem;
-            padding: 0.85rem 0;
+        /* ══════════════════════════════════════════════════
+           INFO STRIP (debajo del hero, reemplaza al panel)
+        ══════════════════════════════════════════════════ */
+        .info-strip {
+            background: var(--white);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem;
         }
-        .hero-feature + .hero-feature { border-top: 1px solid var(--border); }
-        .hero-feature-icon {
-            width: 38px; height: 38px; border-radius: 10px;
+        .info-strip-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: stretch;
+            gap: 0; flex-wrap: wrap;
+        }
+        .info-strip-item {
+            flex: 1; min-width: 160px;
+            display: flex; align-items: center; gap: 0.85rem;
+            padding: 0.75rem 1.5rem;
+        }
+        .info-strip-item + .info-strip-item {
+            border-left: 1px solid var(--border);
+        }
+        .info-strip-icon {
+            width: 36px; height: 36px; border-radius: 9px;
             background: var(--amber-light); color: var(--amber);
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
-        .hero-feature-title { font-size: 0.9rem; font-weight: 700; color: var(--text); }
-        .hero-feature-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+        .info-strip-title {
+            font-size: 0.85rem; font-weight: 700; color: var(--text);
+            line-height: 1.2;
+        }
+        .info-strip-sub {
+            font-size: 0.75rem; color: var(--muted); margin-top: 2px;
+        }
+        .info-strip-stat {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem; font-weight: 900;
+            color: var(--amber); line-height: 1; letter-spacing: -0.02em;
+        }
 
         /* ══════════════════════════════════════════════════
            BRANDS STRIP
@@ -1732,6 +1810,36 @@
                 width: 40px; height: 40px;
             }
         }
+
+        /* ── Responsive carrusel e info-strip ─────────── */
+        @media (max-width: 900px) {
+            .hero-carousel {
+                aspect-ratio: 16/9;
+                min-height: 200px;
+            }
+            .info-strip-item {
+                padding: 0.65rem 1rem;
+                min-width: 140px;
+            }
+        }
+        @media (max-width: 640px) {
+            .info-strip-inner {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0;
+            }
+            .info-strip-item {
+                padding: 0.85rem 0.9rem;
+                border-left: none !important;
+                border-top: 1px solid var(--border);
+            }
+            .info-strip-item:nth-child(odd) {
+                border-right: 1px solid var(--border);
+            }
+            .info-strip-item:nth-child(-n+2) {
+                border-top: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1817,59 +1925,84 @@
                 </div>
             </div>
 
-            <div class="hero-panel">
-                <div class="hero-stats">
-                    <div class="hero-stat">
-                        <div class="hero-stat-num">+15</div>
-                        <div class="hero-stat-label">Marcas</div>
-                    </div>
-                    <div class="hero-stats-divider"></div>
-                    <div class="hero-stat">
-                        <div class="hero-stat-num">100%</div>
-                        <div class="hero-stat-label">Pedido online</div>
-                    </div>
-                </div>
-                <div class="hero-features">
-                    <div class="hero-feature">
-                        <div class="hero-feature-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="hero-feature-title">Mayorista y Minorista</div>
-                            <div class="hero-feature-sub">Precios competitivos para todos</div>
-                        </div>
-                    </div>
-                    <div class="hero-feature">
-                        <div class="hero-feature-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="hero-feature-title">Pedidos por WhatsApp</div>
-                            <div class="hero-feature-sub">Armá tu pedido y cerralo directo</div>
-                        </div>
-                    </div>
-                    <div class="hero-feature">
-                        <div class="hero-feature-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="9"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="hero-feature-title">Horario de atención</div>
-                            <div class="hero-feature-sub">Lun a Vie 08:00–20:30 hs</div>
-                        </div>
-                    </div>
+            <!-- ── CARRUSEL PUBLICITARIO ──────────────── -->
+            <div class="hero-carousel" id="heroCarousel">
+                <div class="carousel-skeleton" id="carouselSkeleton"></div>
+                <div class="carousel-track" id="carouselTrack"></div>
+                <button class="carousel-arrow carousel-prev" id="carouselPrev" aria-label="Anterior">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button class="carousel-arrow carousel-next" id="carouselNext" aria-label="Siguiente">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                <div class="carousel-dots" id="carouselDots"></div>
+                <div class="carousel-empty" id="carouselEmpty" style="display:none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3" style="color:var(--border-dark)">
+                        <rect x="3" y="5" width="18" height="14" rx="3"/>
+                        <path stroke-linecap="round" d="M3 10h18"/>
+                    </svg>
+                    <span>Próximamente novedades</span>
                 </div>
             </div>
         </div>
     </div>
 </header>
 
+<!-- ── INFO STRIP ────────────────────────────────── -->
+<div class="info-strip">
+    <div class="info-strip-inner">
+        <div class="info-strip-item">
+            <div class="info-strip-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path stroke-linecap="round" d="M9 12l2 2 4-4"/>
+                </svg>
+            </div>
+            <div>
+                <div class="info-strip-stat">+15</div>
+                <div class="info-strip-sub">Marcas disponibles</div>
+            </div>
+        </div>
+        <div class="info-strip-item">
+            <div class="info-strip-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="info-strip-title">Mayorista y Minorista</div>
+                <div class="info-strip-sub">Precios competitivos para todos</div>
+            </div>
+        </div>
+        <div class="info-strip-item">
+            <div class="info-strip-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="info-strip-title">Pedidos por WhatsApp</div>
+                <div class="info-strip-sub">Armá tu pedido y cerralo directo</div>
+            </div>
+        </div>
+        <div class="info-strip-item">
+            <div class="info-strip-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/>
+                </svg>
+            </div>
+            <div>
+                <div class="info-strip-title">Horario de atención</div>
+                <div class="info-strip-sub">Lun a Vie 08:00–20:30 hs</div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ── NUESTRAS MARCAS ──────────────────────────────── -->
 <section class="brands-strip">
@@ -2328,6 +2461,89 @@
 
     // Verificar estado inicial por si la página carga scrolleada
     onScroll();
+  })();
+
+  // ── Carrusel publicitario ────────────────────────────────
+  // La inicialización real (carga de banners desde Firestore)
+  // la hace main.js via window.initCarousel(slides).
+  // Acá solo definimos el motor del carrusel.
+  (function () {
+    let slides     = [];
+    let current    = 0;
+    let autoTimer  = null;
+    const AUTO_MS  = 4500;
+
+    const track    = document.getElementById('carouselTrack');
+    const dotsEl   = document.getElementById('carouselDots');
+    const prevBtn  = document.getElementById('carouselPrev');
+    const nextBtn  = document.getElementById('carouselNext');
+    const skeleton = document.getElementById('carouselSkeleton');
+    const emptyEl  = document.getElementById('carouselEmpty');
+
+    function goTo(idx) {
+      if (!slides.length) return;
+      current = (idx + slides.length) % slides.length;
+      track.style.transform = `translateX(-${current * 100}%)`;
+      dotsEl.querySelectorAll('.carousel-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === current);
+      });
+    }
+
+    function startAuto() {
+      stopAuto();
+      if (slides.length < 2) return;
+      autoTimer = setInterval(() => goTo(current + 1), AUTO_MS);
+    }
+    function stopAuto() {
+      clearInterval(autoTimer);
+    }
+
+    prevBtn.addEventListener('click', () => { stopAuto(); goTo(current - 1); startAuto(); });
+    nextBtn.addEventListener('click', () => { stopAuto(); goTo(current + 1); startAuto(); });
+
+    // Touch swipe
+    let touchStartX = 0;
+    track.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    track.addEventListener('touchend', e => {
+      const diff = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 40) { stopAuto(); goTo(current + (diff > 0 ? 1 : -1)); startAuto(); }
+    }, { passive: true });
+
+    // API pública — la llama main.js cuando carga los banners
+    window.initCarousel = function(bannerSlides) {
+      slides = bannerSlides;
+      skeleton.classList.add('hidden');
+
+      if (!slides.length) {
+        emptyEl.style.display = 'flex';
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+        return;
+      }
+
+      // Render slides
+      track.innerHTML = slides.map(s =>
+        `<div class="carousel-slide"><img src="${s.imageUrl}" alt="${s.title || 'Publicidad'}" loading="lazy" decoding="async"></div>`
+      ).join('');
+
+      // Render dots
+      dotsEl.innerHTML = slides.map((_, i) =>
+        `<button class="carousel-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Ir a imagen ${i+1}"></button>`
+      ).join('');
+      dotsEl.addEventListener('click', e => {
+        const dot = e.target.closest('.carousel-dot');
+        if (!dot) return;
+        stopAuto(); goTo(+dot.dataset.idx); startAuto();
+      });
+
+      if (slides.length < 2) {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+      }
+
+      goTo(0);
+      startAuto();
+    };
   })();
 </script>
 </body>
