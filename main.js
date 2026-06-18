@@ -333,6 +333,30 @@ function initFirestoreListeners() {
     },
     (error) => console.error("Error cargando marcas:", error)
   );
+
+  // Banners publicitarios — carrusel del hero
+  onSnapshot(
+    collection(db, "banners"),
+    (snapshot) => {
+      const banners = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((b) => b.active !== false && b.imageUrl)
+        .sort((a, b) => {
+          const oA = typeof a.order === "number" ? a.order : Infinity;
+          const oB = typeof b.order === "number" ? b.order : Infinity;
+          return oA - oB;
+        });
+      if (typeof window.initCarousel === "function") {
+        window.initCarousel(banners);
+      }
+    },
+    (error) => {
+      console.error("Error cargando banners:", error);
+      if (typeof window.initCarousel === "function") {
+        window.initCarousel([]);
+      }
+    }
+  );
 }
 
 // ──────────────────────────────────────────────────────────
