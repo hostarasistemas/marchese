@@ -37,7 +37,7 @@
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
             width: 100%;
-            padding-top: 64px;
+            padding-top: 72px;
         }
 
         /* ══════════════════════════════════════════════════
@@ -49,7 +49,7 @@
             -webkit-backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--border);
             position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-            padding: 0 1.5rem; height: 64px;
+            padding: 0 1.5rem; height: 72px;
             display: flex; align-items: center;
             transition: transform 0.3s ease;
         }
@@ -71,7 +71,7 @@
         .logo-name .logo-marchese { color: var(--amber); }
         .logo-name .logo-golosinas { color: var(--accent-blue); }
         .logo-img {
-            height: 42px; width: auto; display: block;
+            height: 56px; width: auto; display: block;
         }
         .logo-tag {
             font-size: 0.7rem; font-weight: 600;
@@ -414,7 +414,7 @@
         /* SIDEBAR DESKTOP — sticky */
         aside {
             position: sticky;
-            top: calc(64px + 1rem);
+            top: calc(72px + 1rem);
         }
 
         /* SIDEBAR / FILTROS */
@@ -770,8 +770,8 @@
            RESPONSIVE — MOBILE GRANDE (≤ 768px)
         ══════════════════════════════════════════════════ */
         @media (max-width: 768px) {
-            nav { padding: 0 0.85rem; height: 56px; }
-            body { padding-top: 56px; }
+            nav { padding: 0 0.85rem; height: 64px; }
+            body { padding-top: 64px; }
 
             /* Nav inner: 3 zonas — burger | logo centrado | carrito */
             .nav-inner {
@@ -785,7 +785,7 @@
 
             .logo-name { font-size: 1.15rem; }
             .logo-tag { display: none; }
-            .logo-img { height: 32px; }
+            .logo-img { height: 44px; }
 
             /* Carrito: solo ícono + badge, sin texto */
             .cart-btn { padding: 0.45rem 0.6rem; font-size: 0; gap: 0; }
@@ -1971,7 +1971,7 @@
         <div class="nav-links">
             <a href="#">Inicio</a>
             <a href="#catalogo">Catálogo</a>
-            <a href="#contacto">Contacto</a>
+            <a href="nosotros.html">Nosotros</a>
         </div>
 
         <div class="nav-right">
@@ -1989,19 +1989,11 @@
 <!-- ── MOBILE MENU ────────────────────────────────────── -->
 <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
 <div class="mobile-menu" id="mobileMenu">
-    <img src="https://res.cloudinary.com/dloroyhev/image/upload/f_auto,q_auto,w_800/v1781828885/xzeljnj7dqfhnwajvrtj.png" alt="Marchese Golosinas" class="mobile-menu-logo">
-    <div class="mobile-menu-buyer" id="mobileMenuBuyer">
-        <div class="mobile-menu-buyer-info">
-            <span class="buyer-status-dot"></span>
-            <span id="mobileMenuBuyerText">Elegí cómo comprar</span>
-        </div>
-        <button type="button" class="buyer-status-change" id="mobileMenuBuyerChangeBtn">Cambiar</button>
-    </div>
-    <nav class="mobile-menu-links">
+    <div class="mobile-menu-links">
         <a href="#" id="mobileMenuClose1">Inicio</a>
         <a href="#catalogo" id="mobileMenuClose2">Catálogo</a>
-        <a href="#contacto" id="mobileMenuClose3">Contacto</a>
-    </nav>
+        <a href="nosotros.html" id="mobileMenuClose3">Nosotros</a>
+    </div>
 </div>
 
 <header>
