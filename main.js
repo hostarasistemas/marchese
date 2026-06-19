@@ -86,6 +86,8 @@ const lightboxCloseBtn = document.getElementById("lightboxCloseBtn");
 const lightboxImg = document.getElementById("lightboxImg");
 
 const contactName = document.getElementById("contactName");
+const tagPillsWrap = document.getElementById("tagPillsWrap");
+const tagPillsContainer = document.getElementById("tagPillsContainer");
 const contactMessage = document.getElementById("contactMessage");
 const contactSubmit = document.getElementById("contactSubmit");
 const contactFeedback = document.getElementById("contactFeedback");
@@ -116,6 +118,7 @@ let productsLoaded = false;
 let activeCategory = "Todos";
 let activeBrands = new Set();
 let searchTerm = "";
+let activeTag = null; // null = sin filtro de tag
 
 // Tipo de compra elegido por el cliente: "mayorista" | "minorista" | null
 let buyerType = null;
@@ -290,12 +293,13 @@ function initFirestoreListeners() {
     (snapshot) => {
       allProducts = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((p) => p.active !== false)
         .sort(sortByOrderThenName);
       productsLoaded = true;
       renderCategories();
       renderBrands();
+      renderTagPills();
       renderProducts();
+      if (isCartOpen()) renderCart();
     },
     (error) => {
       console.error("Error cargando productos:", error);
@@ -367,9 +371,9 @@ function getCategoryList() {
   if (allCategories.length > 0) {
     return allCategories.map((c) => c.name).filter(Boolean);
   }
-  // Si no hay colección "categories" todavía, las derivamos de los productos
+  // Si no hay colección "categories" todavía, las derivamos de los productos ACTIVOS
   const set = new Set();
-  allProducts.forEach((p) => p.category && set.add(p.category));
+  allProducts.filter((p) => p.active !== false).forEach((p) => p.category && set.add(p.category));
   return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
 }
 
@@ -381,10 +385,12 @@ let brandExpanded = false;
 function renderCategories() {
   const categories = getCategoryList();
 
+  // Solo contar productos activos (los agotados siguen en allProducts pero no se cuentan)
+  const activeProducts = allProducts.filter((p) => p.active !== false);
   const countFor = (catName) =>
     catName === "Todos"
-      ? allProducts.length
-      : allProducts.filter((p) => p.category === catName).length;
+      ? activeProducts.length
+      : activeProducts.filter((p) => p.category === catName).length;
 
   const buttons = [{ name: "Todos" }, ...categories.map((name) => ({ name }))];
   const needsToggle = buttons.length > CAT_VISIBLE_LIMIT;
@@ -539,10 +545,11 @@ function renderFilterSheetBody(search = "") {
 
   if (filterSheetType === "cat") {
     const categories = getCategoryList();
+    const activeProds = allProducts.filter((p) => p.active !== false);
     const countFor = (catName) =>
       catName === "Todos"
-        ? allProducts.length
-        : allProducts.filter((p) => p.category === catName).length;
+        ? activeProds.length
+        : activeProds.filter((p) => p.category === catName).length;
 
     const all = [{ name: "Todos" }, ...categories.map((name) => ({ name }))];
     const filtered = q
@@ -563,7 +570,7 @@ function renderFilterSheetBody(search = "") {
       : `<div class="filter-sheet-empty">No encontramos categorías para "${escapeHtml(search)}"</div>`;
   } else if (filterSheetType === "brand") {
     const brands = getBrandList();
-    const countFor = (name) => allProducts.filter((p) => p.brand === name).length;
+    const countFor = (name) => allProducts.filter((p) => p.active !== false && p.brand === name).length;
     const filtered = q
       ? brands.filter((name) => normalizeForSearch(name).includes(q))
       : brands;
@@ -721,6 +728,7 @@ function getFilteredProducts() {
   return allProducts.filter((p) => {
     if (activeCategory !== "Todos" && p.category !== activeCategory) return false;
     if (activeBrands.size > 0 && !activeBrands.has(p.brand)) return false;
+    if (activeTag && (p.tag || "").trim().toLowerCase() !== activeTag.toLowerCase()) return false;
     if (searchTerm) {
       const haystack = `${p.name || ""} ${p.description || ""}`.toLowerCase();
       if (!haystack.includes(searchTerm)) return false;
@@ -729,23 +737,115 @@ function getFilteredProducts() {
   });
 }
 
+// ──────────────────────────────────────────────────────────
+// RENDER: TAG PILLS
+// ──────────────────────────────────────────────────────────
+
+// Orden canónico de tags. Los que no estén en la lista van al final.
+const TAG_ORDER = [
+  "Nuevo",
+  "Importado",
+  "Oferta",
+  "Destacado",
+  "Liquidación",
+  "Ultimas Unidades",
+];
+
+function renderTagPills() {
+  if (!tagPillsContainer || !tagPillsWrap) return;
+
+  // Recolectar tags únicos de productos activos
+  const tagsSet = new Set();
+  allProducts
+    .filter((p) => p.active !== false && p.tag && p.tag.trim())
+    .forEach((p) => tagsSet.add(p.tag.trim()));
+
+  if (tagsSet.size === 0) {
+    tagPillsWrap.style.display = "none";
+    return;
+  }
+
+  // Ordenar según TAG_ORDER; los desconocidos van al final en orden alfabético
+  const tags = Array.from(tagsSet).sort((a, b) => {
+    const idxA = TAG_ORDER.findIndex((t) => t.toLowerCase() === a.toLowerCase());
+    const idxB = TAG_ORDER.findIndex((t) => t.toLowerCase() === b.toLowerCase());
+    const rankA = idxA === -1 ? TAG_ORDER.length : idxA;
+    const rankB = idxB === -1 ? TAG_ORDER.length : idxB;
+    if (rankA !== rankB) return rankA - rankB;
+    return a.localeCompare(b, "es");
+  });
+
+  tagPillsWrap.style.display = "flex";
+
+  // Botón "Limpiar filtro" — solo visible cuando hay un tag activo
+  const clearBtn = activeTag
+    ? `<button class="tag-pill-clear" id="tagPillClear" aria-label="Quitar filtro de tag">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Quitar filtro
+      </button>`
+    : "";
+
+  tagPillsContainer.innerHTML =
+    clearBtn +
+    tags
+      .map((tag) => {
+        const isActive = activeTag && activeTag.toLowerCase() === tag.toLowerCase();
+        return `<button class="tag-pill${isActive ? " active" : ""}" data-tag="${escapeHtml(tag)}">
+          <span class="tag-dot"></span>
+          ${escapeHtml(tag)}
+        </button>`;
+      })
+      .join("");
+
+  // Listener del botón limpiar
+  const clearEl = document.getElementById("tagPillClear");
+  if (clearEl) {
+    clearEl.addEventListener("click", () => {
+      activeTag = null;
+      renderTagPills();
+      renderProducts();
+    });
+  }
+}
+
 function productCardHtml(product) {
   const { bg, inner } = getProductVisual(product);
-  const tag = product.tag
+  const isOutOfStock = product.active === false;
+
+  // Badge "Agotado" tiene prioridad; si hay tag y está disponible, se muestra ese
+  const tag = isOutOfStock
+    ? `<span class="card-tag card-tag-soldout">Agotado</span>`
+    : product.tag
     ? `<span class="card-tag">${escapeHtml(product.tag)}</span>`
     : "";
 
+  // Imagen y nombre solo clickeables si el producto está disponible
+  const imgDataAttr = isOutOfStock ? "" : ` data-id="${product.id}"`;
+  const nameDataAttr = isOutOfStock ? "" : ` data-id="${product.id}"`;
+
+  // Botón: deshabilitado si está agotado
+  const actionBtn = isOutOfStock
+    ? `<button type="button" class="btn-cart btn-soldout" disabled>
+         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+           <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+         </svg>
+         Agotado
+       </button>`
+    : `<button type="button" class="btn-cart btn-details" data-id="${product.id}">Ver detalles</button>`;
+
   return `
-    <div class="product-card" data-id="${product.id}">
-      <div class="card-img ${bg}" data-id="${product.id}">
+    <div class="product-card${isOutOfStock ? " product-card-soldout" : ""}" data-id="${product.id}">
+      <div class="card-img ${bg}"${imgDataAttr}>
         ${tag}
         ${inner}
       </div>
       <div class="card-body">
         <p class="card-cat">${escapeHtml(product.category || "")}</p>
-        <h3 class="card-name" data-id="${product.id}">${escapeHtml(product.name || "")}</h3>
+        <h3 class="card-name"${nameDataAttr}>${escapeHtml(product.name || "")}</h3>
         <p class="card-desc">${escapeHtml(product.description || "")}</p>
-        <button type="button" class="btn-cart btn-details" data-id="${product.id}">Ver detalles</button>
+        ${actionBtn}
       </div>
     </div>`;
 }
@@ -888,6 +988,8 @@ function unlockBodyScroll() {
 function openProductModal(productId) {
   const product = allProducts.find((p) => p.id === productId);
   if (!product) return;
+  // No abrir el modal si el producto está agotado (inactivo)
+  if (product.active === false) return;
   closeCart();
   renderModalProduct(productId);
   modalOverlay.classList.add("open");
@@ -937,6 +1039,26 @@ function cartItemHtml(item) {
     ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">`
     : `<div class="card-img ${visual.bg}" style="width:100%;height:100%;">${visual.inner.replace(/width="72" height="72"/, 'width="28" height="28"')}</div>`;
 
+  // Verificar si el producto sigue activo en el catálogo actual
+  const liveProduct = allProducts.find((p) => p.id === item.id);
+  const isSoldOut = !liveProduct || liveProduct.active === false;
+
+  if (isSoldOut) {
+    return `
+      <div class="cart-item cart-item-soldout" data-id="${item.id}">
+        <div class="cart-item-img" style="opacity:0.45;filter:grayscale(60%);">${imgHtml}</div>
+        <div class="cart-item-info">
+          <div class="cart-item-name" style="opacity:0.5;">${escapeHtml(item.name)}</div>
+          <div class="cart-item-cat" style="color:var(--red);font-weight:700;">Agotado — se quitará del pedido</div>
+        </div>
+        <button type="button" class="cart-item-remove" data-id="${item.id}" aria-label="Quitar producto">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>`;
+  }
+
   return `
     <div class="cart-item" data-id="${item.id}">
       <div class="cart-item-img">${imgHtml}</div>
@@ -981,6 +1103,10 @@ function renderCart() {
   updateCartBadge();
 }
 
+function isCartOpen() {
+  return cartDrawer.classList.contains("open");
+}
+
 function openCart() {
   renderCart();
   cartOverlay.classList.add("open");
@@ -1001,6 +1127,8 @@ function closeCart() {
 function handleAddToCart(productId, qty = 1) {
   const product = allProducts.find((p) => p.id === productId);
   if (!product) return;
+  // Bloquear si el producto está agotado (inactivo)
+  if (product.active === false) return;
   addToCart(product, qty);
   updateCartBadge();
   // Resetear stepper del modal a 1 sin re-renderizar todo el contenido
@@ -1222,6 +1350,38 @@ function sendOrderToWhatsApp() {
     return;
   }
 
+  // Filtrar productos que fueron desactivados (agotados) desde que se agregaron
+  const soldOutItems = Object.values(cart).filter((item) => {
+    const live = allProducts.find((p) => p.id === item.id);
+    return !live || live.active === false;
+  });
+
+  if (soldOutItems.length > 0) {
+    // Quitar los agotados del carrito automáticamente
+    soldOutItems.forEach((item) => removeFromCart(item.id));
+    updateCartBadge();
+    renderCart();
+    renderProducts();
+
+    // Si quedó el carrito vacío luego de sacar los agotados, avisar y no enviar
+    const remaining = getCart();
+    if (Object.keys(remaining).length === 0) {
+      showToast("Sin productos disponibles", "error", "Todos los productos de tu pedido se agotaron");
+      return;
+    }
+
+    // Había algo agotado pero quedan ítems: avisar y continuar
+    const names = soldOutItems.map((i) => i.name).join(", ");
+    showToast("Productos agotados quitados", "error", `Se eliminaron del pedido: ${names}`);
+    // Dar un momento para que el usuario vea el aviso antes de abrir WA
+    setTimeout(() => _doSendWhatsApp(), 1200);
+    return;
+  }
+
+  _doSendWhatsApp();
+}
+
+function _doSendWhatsApp() {
   const message = buildWhatsAppMessage();
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -1309,6 +1469,19 @@ function setupEventListeners() {
       renderProducts();
     }, 200)
   );
+
+  // Tag pills (filtro rápido por tag)
+  if (tagPillsContainer) {
+    tagPillsContainer.addEventListener("click", (e) => {
+      const pill = e.target.closest(".tag-pill");
+      if (!pill) return;
+      const tag = pill.dataset.tag;
+      // Toggle: si ya está activo el mismo tag, lo desactiva
+      activeTag = activeTag && activeTag.toLowerCase() === tag.toLowerCase() ? null : tag;
+      renderTagPills();
+      renderProducts();
+    });
+  }
 
   // Categorías (delegación)
   categoryContainer.addEventListener("click", (e) => {
