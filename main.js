@@ -1415,6 +1415,16 @@ function setupWaWebBtnListener() {
   });
 }
 
+// Botón flotante de WhatsApp (visible en toda la navegación, fuera del
+// flujo de carrito): arma un saludo genérico para que cualquiera pueda
+// escribir directo sin tener que armar un pedido primero.
+function setupFloatingWaBtn() {
+  const btn = document.getElementById("waFloatBtn");
+  if (!btn) return;
+  const message = "¡Hola! Quería hacer una consulta sobre los productos de Marchese Golosinas 😊";
+  btn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 // ──────────────────────────────────────────────────────────
 // FORMULARIO DE CONTACTO -> Firestore (colección "consultas")
 // ──────────────────────────────────────────────────────────
@@ -1671,6 +1681,7 @@ function init() {
   setupBuyerTypeListeners();
   setupQrModalListeners();
   setupWaWebBtnListener();
+  setupFloatingWaBtn();
   initFirestoreListeners();
 
   // Si todavía no eligió mayorista/minorista, se le pide apenas entra al sitio.
