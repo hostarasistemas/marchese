@@ -833,7 +833,7 @@ function productCardHtml(product) {
          </svg>
          Agotado
        </button>`
-    : `<button type="button" class="btn-cart btn-details" data-id="${product.id}">Ver detalles</button>`;
+    : `<button type="button" class="btn-cart btn-details" data-id="${product.id}">Ver producto</button>`;
 
   return `
     <div class="product-card${isOutOfStock ? " product-card-soldout" : ""}" data-id="${product.id}">
