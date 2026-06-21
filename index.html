@@ -51,9 +51,7 @@
             position: fixed; top: 0; left: 0; right: 0; z-index: 50;
             padding: 0 1.5rem; height: 72px;
             display: flex; align-items: center;
-            transition: transform 0.3s ease;
         }
-        nav.nav-hidden { transform: translateY(-100%); }
 
         .nav-inner {
             max-width: 1200px; margin: 0 auto; width: 100%;
@@ -373,12 +371,17 @@
             border-radius: 14px; padding: 1.25rem 1.5rem; width: 130px;
             transition: border-color .2s, box-shadow .2s, transform .2s;
             flex-shrink: 0;
-            cursor: default;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .brand-logo-card:hover {
             border-color: var(--amber);
-            box-shadow: 0 6px 20px rgba(232,146,10,0.1);
+            box-shadow: 0 6px 20px rgba(232,146,10,0.18);
             transform: translateY(-2px);
+        }
+        .brand-logo-card:active {
+            transform: translateY(0) scale(0.97);
         }
         .brand-logo-card img { width: 80px; height: 60px; object-fit: contain; }
         .brand-logo-name {
@@ -785,7 +788,7 @@
 
             .logo-name { font-size: 1.15rem; }
             .logo-tag { display: none; }
-            .logo-img { height: 44px; }
+            .logo-img { height: 47px; }
 
             /* Carrito: solo ícono + badge, sin texto */
             .cart-btn { padding: 0.45rem 0.6rem; font-size: 0; gap: 0; }
@@ -1256,6 +1259,42 @@
             text-align: center; transition: color .15s;
         }
         .btn-clear-cart:hover { color: var(--red); }
+
+        /* ── Formulario de datos del comprador (en el carrito) ── */
+        .cart-buyer-form {
+            display: flex; flex-direction: column; gap: 0.7rem;
+            border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border);
+            padding: 0.9rem 0; margin: 0.1rem 0;
+        }
+        .cart-buyer-form-title {
+            font-size: 0.72rem; font-weight: 700; color: var(--text);
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .cart-form-row { display: flex; flex-direction: column; gap: 0.32rem; }
+        .cart-form-row-split {
+            flex-direction: row; gap: 0.6rem;
+        }
+        .cart-form-row-split > .cart-form-row { flex: 1 1 0; min-width: 0; }
+        .cart-form-label {
+            font-size: 0.74rem; font-weight: 600; color: var(--text-mid);
+        }
+        .cart-form-label .req { color: var(--red); }
+        .cart-form-label .opt { color: var(--muted); font-weight: 500; }
+        .cart-form-input {
+            width: 100%; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; padding: 0.6rem 0.75rem;
+            font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--text);
+            outline: none; transition: border-color .15s, background .15s; box-sizing: border-box;
+        }
+        .cart-form-input::placeholder { color: var(--muted); }
+        .cart-form-input:focus { border-color: var(--amber-mid); background: var(--white); }
+        .cart-form-input.invalid { border-color: var(--red); background: var(--red-light); }
+        textarea.cart-form-input { resize: vertical; min-height: 52px; font-family: 'DM Sans', sans-serif; }
+        .cart-form-hint { font-size: 0.7rem; color: var(--muted); margin: 0; }
+
+        @media (max-width: 420px) {
+            .cart-form-row-split { flex-direction: column; }
+        }
 
         /* ══════════════════════════════════════════════════
            TOASTS
@@ -2190,43 +2229,44 @@
     <div class="brands-strip-inner">
         <div class="brands-strip-header">
             <p class="section-eyebrow">Trabajamos con</p>
+            <p style="font-size:0.8rem;color:var(--muted);margin-top:0.5rem;">Hacé click en una marca para ver sus productos</p>
         </div>
         <div class="brands-marquee-wrapper">
             <div class="brands-logo-track" aria-label="Marcas con las que trabajamos">
 
                 <!-- ═══ SET 1 (original) ═══ -->
-                <div class="brand-logo-card"><img src="Header_LogoGam.png" alt="Gam"><span class="brand-logo-name">Gam!</span></div>
-                <div class="brand-logo-card"><img src="paysandu.png" alt="Paysandu"><span class="brand-logo-name">Paysandu</span></div>
-                <div class="brand-logo-card"><img src="bulldog.avif" alt="Bull Dog"><span class="brand-logo-name">Bull Dog</span></div>
-                <div class="brand-logo-card"><img src="lacasa.png" alt="Lacasa"><span class="brand-logo-name">Lacasa</span></div>
-                <div class="brand-logo-card"><img src="billiken.png" alt="Billiken"><span class="brand-logo-name">Billiken</span></div>
-                <div class="brand-logo-card"><img src="lipo.png" alt="Lipo"><span class="brand-logo-name">Lipo</span></div>
-                <div class="brand-logo-card"><img src="opencandy.png" alt="Open Candy"><span class="brand-logo-name">Open Candy</span></div>
-                <div class="brand-logo-card"><img src="pipas.png" alt="Pipas"><span class="brand-logo-name">Pipas</span></div>
-                <div class="brand-logo-card"><img src="donsatur.png" alt="Don Satur"><span class="brand-logo-name">Don Satur</span></div>
-                <div class="brand-logo-card"><img src="riskydit.png" alt="Risky - Dit"><span class="brand-logo-name">Risky - Dit</span></div>
-                <div class="brand-logo-card"><img src="solitas.png" alt="Solitas"><span class="brand-logo-name">Solitas</span></div>
-                <div class="brand-logo-card"><img src="nevares.png" alt="Nevares"><span class="brand-logo-name">Nevares</span></div>
-                <div class="brand-logo-card"><img src="florestal.png" alt="Florestal"><span class="brand-logo-name">Florestal (BRA)</span></div>
-                <div class="brand-logo-card"><img src="slices.ico" alt="Slices"><span class="brand-logo-name">Slices</span></div>
-                <div class="brand-logo-card"><img src="tembleke.webp" alt="Tembleke"><span class="brand-logo-name">Tembleke</span></div>
+                <div class="brand-logo-card" data-brand="Gam!" role="button" tabindex="0" aria-label="Ver productos Gam!"><img src="https://hostarasistemas.github.io/marchese/Header_LogoGam.png" alt="Gam"><span class="brand-logo-name">Gam!</span></div>
+                <div class="brand-logo-card" data-brand="Paysandu" role="button" tabindex="0" aria-label="Ver productos Paysandu"><img src="paysandu.png" alt="Paysandu"><span class="brand-logo-name">Paysandu</span></div>
+                <div class="brand-logo-card" data-brand="Bull Dog" role="button" tabindex="0" aria-label="Ver productos Bull Dog"><img src="https://hostarasistemas.github.io/marchese/bulldog.avif" alt="Bull Dog"><span class="brand-logo-name">Bull Dog</span></div>
+                <div class="brand-logo-card" data-brand="Lacasa" role="button" tabindex="0" aria-label="Ver productos Lacasa"><img src="lacasa.png" alt="Lacasa"><span class="brand-logo-name">Lacasa</span></div>
+                <div class="brand-logo-card" data-brand="Billiken" role="button" tabindex="0" aria-label="Ver productos Billiken"><img src="https://hostarasistemas.github.io/marchese/billiken.png" alt="Billiken"><span class="brand-logo-name">Billiken</span></div>
+                <div class="brand-logo-card" data-brand="Lipo" role="button" tabindex="0" aria-label="Ver productos Lipo"><img src="lipo.png" alt="Lipo"><span class="brand-logo-name">Lipo</span></div>
+                <div class="brand-logo-card" data-brand="Open Candy" role="button" tabindex="0" aria-label="Ver productos Open Candy"><img src="opencandy.png" alt="Open Candy"><span class="brand-logo-name">Open Candy</span></div>
+                <div class="brand-logo-card" data-brand="Pipas" role="button" tabindex="0" aria-label="Ver productos Pipas"><img src="pipas.png" alt="Pipas"><span class="brand-logo-name">Pipas</span></div>
+                <div class="brand-logo-card" data-brand="Don Satur" role="button" tabindex="0" aria-label="Ver productos Don Satur"><img src="https://hostarasistemas.github.io/marchese/donsatur.png" alt="Don Satur"><span class="brand-logo-name">Don Satur</span></div>
+                <div class="brand-logo-card" data-brand="Risky-Dit" role="button" tabindex="0" aria-label="Ver productos Risky - Dit"><img src="riskydit.png" alt="Risky - Dit"><span class="brand-logo-name">Risky - Dit</span></div>
+                <div class="brand-logo-card" data-brand="Solitas" role="button" tabindex="0" aria-label="Ver productos Solitas"><img src="solitas.png" alt="Solitas"><span class="brand-logo-name">Solitas</span></div>
+                <div class="brand-logo-card" data-brand="Nevares" role="button" tabindex="0" aria-label="Ver productos Nevares"><img src="nevares.png" alt="Nevares"><span class="brand-logo-name">Nevares</span></div>
+                <div class="brand-logo-card" data-brand="Florestal" role="button" tabindex="0" aria-label="Ver productos Florestal"><img src="florestal.png" alt="Florestal"><span class="brand-logo-name">Florestal (BRA)</span></div>
+                <div class="brand-logo-card" data-brand="Slices" role="button" tabindex="0" aria-label="Ver productos Slices"><img src="slices.ico" alt="Slices"><span class="brand-logo-name">Slices</span></div>
+                <div class="brand-logo-card" data-brand="Tembleke" role="button" tabindex="0" aria-label="Ver productos Tembleke"><img src="tembleke.webp" alt="Tembleke"><span class="brand-logo-name">Tembleke</span></div>
 
                 <!-- ═══ SET 2 (duplicado para loop infinito) ═══ -->
-               <div class="brand-logo-card"><img src="Header_LogoGam.png" alt="Gam"><span class="brand-logo-name">Gam!</span></div>
-                <div class="brand-logo-card"><img src="paysandu.png" alt="Paysandu"><span class="brand-logo-name">Paysandu</span></div>
-                <div class="brand-logo-card"><img src="bulldog.avif" alt="Bull Dog"><span class="brand-logo-name">Bull Dog</span></div>
-                <div class="brand-logo-card"><img src="lacasa.png" alt="Lacasa"><span class="brand-logo-name">Lacasa</span></div>
-                <div class="brand-logo-card"><img src="billiken.png" alt="Billiken"><span class="brand-logo-name">Billiken</span></div>
-                <div class="brand-logo-card"><img src="lipo.png" alt="Lipo"><span class="brand-logo-name">Lipo</span></div>
-                <div class="brand-logo-card"><img src="opencandy.png" alt="Open Candy"><span class="brand-logo-name">Open Candy</span></div>
-                <div class="brand-logo-card"><img src="pipas.png" alt="Pipas"><span class="brand-logo-name">Pipas</span></div>
-                <div class="brand-logo-card"><img src="donsatur.png" alt="Don Satur"><span class="brand-logo-name">Don Satur</span></div>
-                <div class="brand-logo-card"><img src="riskydit.png" alt="Risky - Dit"><span class="brand-logo-name">Risky - Dit</span></div>
-                <div class="brand-logo-card"><img src="solitas.png" alt="Solitas"><span class="brand-logo-name">Solitas</span></div>
-                <div class="brand-logo-card"><img src="nevares.png" alt="Nevares"><span class="brand-logo-name">Nevares</span></div>
-                <div class="brand-logo-card"><img src="florestal.png" alt="Florestal"><span class="brand-logo-name">Florestal (BRA)</span></div>
-                <div class="brand-logo-card"><img src="slices.ico" alt="Slices"><span class="brand-logo-name">Slices</span></div>
-                <div class="brand-logo-card"><img src="tembleke.webp" alt="Tembleke"><span class="brand-logo-name">Tembleke</span></div>
+               <div class="brand-logo-card" data-brand="Gam!" role="button" tabindex="0" aria-label="Ver productos Gam!"><img src="Header_LogoGam.png" alt="Gam"><span class="brand-logo-name">Gam!</span></div>
+                <div class="brand-logo-card" data-brand="Paysandu" role="button" tabindex="0" aria-label="Ver productos Paysandu"><img src="paysandu.png" alt="Paysandu"><span class="brand-logo-name">Paysandu</span></div>
+                <div class="brand-logo-card" data-brand="Bull Dog" role="button" tabindex="0" aria-label="Ver productos Bull Dog"><img src="bulldog.avif" alt="Bull Dog"><span class="brand-logo-name">Bull Dog</span></div>
+                <div class="brand-logo-card" data-brand="Lacasa" role="button" tabindex="0" aria-label="Ver productos Lacasa"><img src="lacasa.png" alt="Lacasa"><span class="brand-logo-name">Lacasa</span></div>
+                <div class="brand-logo-card" data-brand="Billiken" role="button" tabindex="0" aria-label="Ver productos Billiken"><img src="billiken.png" alt="Billiken"><span class="brand-logo-name">Billiken</span></div>
+                <div class="brand-logo-card" data-brand="Lipo" role="button" tabindex="0" aria-label="Ver productos Lipo"><img src="lipo.png" alt="Lipo"><span class="brand-logo-name">Lipo</span></div>
+                <div class="brand-logo-card" data-brand="Open Candy" role="button" tabindex="0" aria-label="Ver productos Open Candy"><img src="opencandy.png" alt="Open Candy"><span class="brand-logo-name">Open Candy</span></div>
+                <div class="brand-logo-card" data-brand="Pipas" role="button" tabindex="0" aria-label="Ver productos Pipas"><img src="pipas.png" alt="Pipas"><span class="brand-logo-name">Pipas</span></div>
+                <div class="brand-logo-card" data-brand="Don Satur" role="button" tabindex="0" aria-label="Ver productos Don Satur"><img src="donsatur.png" alt="Don Satur"><span class="brand-logo-name">Don Satur</span></div>
+                <div class="brand-logo-card" data-brand="Risky-Dit" role="button" tabindex="0" aria-label="Ver productos Risky - Dit"><img src="riskydit.png" alt="Risky - Dit"><span class="brand-logo-name">Risky - Dit</span></div>
+                <div class="brand-logo-card" data-brand="Solitas" role="button" tabindex="0" aria-label="Ver productos Solitas"><img src="solitas.png" alt="Solitas"><span class="brand-logo-name">Solitas</span></div>
+                <div class="brand-logo-card" data-brand="Nevares" role="button" tabindex="0" aria-label="Ver productos Nevares"><img src="nevares.png" alt="Nevares"><span class="brand-logo-name">Nevares</span></div>
+                <div class="brand-logo-card" data-brand="Florestal" role="button" tabindex="0" aria-label="Ver productos Florestal"><img src="florestal.png" alt="Florestal"><span class="brand-logo-name">Florestal (BRA)</span></div>
+                <div class="brand-logo-card" data-brand="Slices" role="button" tabindex="0" aria-label="Ver productos Slices"><img src="slices.ico" alt="Slices"><span class="brand-logo-name">Slices</span></div>
+                <div class="brand-logo-card" data-brand="Tembleke" role="button" tabindex="0" aria-label="Ver productos Tembleke"><img src="tembleke.webp" alt="Tembleke"><span class="brand-logo-name">Tembleke</span></div>
 
 
             </div>
@@ -2411,6 +2451,39 @@
             <span>Unidades totales</span>
             <strong id="cartTotalUnits">0</strong>
         </div>
+
+        <div class="cart-buyer-form" id="cartBuyerForm">
+            <div class="cart-buyer-form-title">Tus datos para el pedido</div>
+
+            <div class="cart-form-row">
+                <label class="cart-form-label" for="buyerNameInput">Nombre y apellido <span class="req">*</span></label>
+                <input type="text" id="buyerNameInput" class="cart-form-input" placeholder="Ej: Juan Pérez" autocomplete="name">
+            </div>
+
+            <div class="cart-form-row cart-form-row-split">
+                <div class="cart-form-row">
+                    <label class="cart-form-label" for="buyerLocalityInput">Localidad <span class="req">*</span></label>
+                    <input type="text" id="buyerLocalityInput" class="cart-form-input" placeholder="Ej: Resistencia" autocomplete="address-level2">
+                </div>
+                <div class="cart-form-row">
+                    <label class="cart-form-label" for="buyerProvinceInput">Provincia <span class="req">*</span></label>
+                    <input type="text" id="buyerProvinceInput" class="cart-form-input" placeholder="Ej: Chaco" autocomplete="address-level1">
+                </div>
+            </div>
+
+            <div class="cart-form-row">
+                <label class="cart-form-label" for="buyerPhoneInput">Teléfono <span class="opt">(opcional, recomendado)</span></label>
+                <input type="tel" id="buyerPhoneInput" class="cart-form-input" placeholder="Ej: 3624 123456" autocomplete="tel">
+            </div>
+
+            <div class="cart-form-row">
+                <label class="cart-form-label" for="buyerNotesInput">Observaciones <span class="opt">(opcional)</span></label>
+                <textarea id="buyerNotesInput" class="cart-form-input cart-form-textarea" rows="2" placeholder="Horario de entrega, referencias, aclaraciones..."></textarea>
+            </div>
+
+            <p class="cart-form-hint" id="cartFormHint">* Datos obligatorios para poder coordinar tu pedido.</p>
+        </div>
+
         <button class="btn-whatsapp" id="cartWhatsappBtn">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.6 6.32A8.86 8.86 0 0012.05 3.6c-4.9 0-8.9 4-8.9 8.9 0 1.57.41 3.1 1.2 4.45L3 21l4.18-1.3a8.9 8.9 0 004.87 1.42h.01c4.9 0 8.9-4 8.9-8.9 0-2.38-.93-4.61-2.36-6.3zm-5.55 13.7h-.01a7.4 7.4 0 01-3.77-1.03l-.27-.16-2.8.87.88-2.74-.18-.28a7.39 7.39 0 01-1.13-3.94c0-4.08 3.32-7.4 7.4-7.4 1.98 0 3.83.77 5.23 2.17a7.34 7.34 0 012.16 5.23c0 4.08-3.33 7.4-7.41 7.4z"/>
@@ -2581,24 +2654,6 @@
 <script type="module" src="main.js"></script>
 
 <script>
-  // ── Hide nav on scroll down, show on scroll up ──────────
-  (function () {
-    const nav = document.querySelector('nav');
-    let lastScrollY = window.scrollY;
-    const THRESHOLD = 10;
-
-    window.addEventListener('scroll', () => {
-      const currentY = window.scrollY;
-      if (Math.abs(currentY - lastScrollY) < THRESHOLD) return;
-      if (currentY > lastScrollY && currentY > 64) {
-        nav.classList.add('nav-hidden');
-      } else {
-        nav.classList.remove('nav-hidden');
-      }
-      lastScrollY = currentY;
-    }, { passive: true });
-  })();
-
   // ── Hamburger / Mobile Menu ──────────────────────────────
   (function () {
     const hamburgerBtn    = document.getElementById('hamburgerBtn');
