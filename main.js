@@ -35,6 +35,11 @@ const BUYER_TYPE_WA_LABELS = {
   minorista: "🛍️ PEDIDO MINORISTA",
 };
 
+// Clave de localStorage donde se guardan los datos de contacto del
+// cliente (nombre, localidad, provincia, teléfono, observaciones) para
+// no tener que volver a tipearlos en próximos pedidos.
+const BUYER_INFO_KEY = "marchese_buyer_info";
+
 // ──────────────────────────────────────────────────────────
 // REFERENCIAS AL DOM
 // ──────────────────────────────────────────────────────────
@@ -69,6 +74,12 @@ const cartTotalLines = document.getElementById("cartTotalLines");
 const cartTotalUnits = document.getElementById("cartTotalUnits");
 const cartWhatsappBtn = document.getElementById("cartWhatsappBtn");
 const cartClearBtn = document.getElementById("cartClearBtn");
+
+const buyerNameInput = document.getElementById("buyerNameInput");
+const buyerLocalityInput = document.getElementById("buyerLocalityInput");
+const buyerProvinceInput = document.getElementById("buyerProvinceInput");
+const buyerPhoneInput = document.getElementById("buyerPhoneInput");
+const buyerNotesInput = document.getElementById("buyerNotesInput");
 
 const clearCartDialogOverlay = document.getElementById("clearCartDialogOverlay");
 const clearCartCancel = document.getElementById("clearCartCancel");
@@ -1315,18 +1326,116 @@ function setupBuyerTypeListeners() {
 }
 
 // ──────────────────────────────────────────────────────────
+// DATOS DEL COMPRADOR (nombre, localidad, provincia, tel, obs)
+// ──────────────────────────────────────────────────────────
+
+function getSavedBuyerInfo() {
+  try {
+    const raw = localStorage.getItem(BUYER_INFO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveBuyerInfo(info) {
+  try {
+    localStorage.setItem(BUYER_INFO_KEY, JSON.stringify(info));
+  } catch (error) {
+    // Si el navegador bloquea localStorage, seguimos solo con lo tipeado en pantalla.
+  }
+}
+
+// Precarga el formulario con los datos guardados de una visita anterior.
+function fillBuyerFormFromStorage() {
+  const saved = getSavedBuyerInfo();
+  if (!saved) return;
+  if (buyerNameInput) buyerNameInput.value = saved.name || "";
+  if (buyerLocalityInput) buyerLocalityInput.value = saved.locality || "";
+  if (buyerProvinceInput) buyerProvinceInput.value = saved.province || "";
+  if (buyerPhoneInput) buyerPhoneInput.value = saved.phone || "";
+  if (buyerNotesInput) buyerNotesInput.value = saved.notes || "";
+}
+
+// Lee el formulario, guarda lo tipeado y devuelve { valid, data }.
+// Si falta algún campo obligatorio, marca el/los inputs con la clase
+// "invalid" y hace foco en el primero.
+function readAndValidateBuyerForm() {
+  const data = {
+    name: (buyerNameInput?.value || "").trim(),
+    locality: (buyerLocalityInput?.value || "").trim(),
+    province: (buyerProvinceInput?.value || "").trim(),
+    phone: (buyerPhoneInput?.value || "").trim(),
+    notes: (buyerNotesInput?.value || "").trim(),
+  };
+
+  saveBuyerInfo(data);
+
+  const requiredFields = [
+    [buyerNameInput, data.name],
+    [buyerLocalityInput, data.locality],
+    [buyerProvinceInput, data.province],
+  ];
+
+  let firstInvalid = null;
+  requiredFields.forEach(([el, value]) => {
+    if (!el) return;
+    const isInvalid = value.length === 0;
+    el.classList.toggle("invalid", isInvalid);
+    if (isInvalid && !firstInvalid) firstInvalid = el;
+  });
+
+  if (firstInvalid) {
+    firstInvalid.focus();
+    firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+    return { valid: false, data };
+  }
+
+  return { valid: true, data };
+}
+
+function setupBuyerFormListeners() {
+  [buyerNameInput, buyerLocalityInput, buyerProvinceInput].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("input", () => el.classList.remove("invalid"));
+  });
+}
+
+
+// ──────────────────────────────────────────────────────────
 // WHATSAPP
 // ──────────────────────────────────────────────────────────
 
-function buildWhatsAppMessage() {
+function buildWhatsAppMessage(buyerInfo) {
   const cart = getCart();
   const items = Object.values(cart);
+  const info = buyerInfo || {
+    name: (buyerNameInput?.value || "").trim(),
+    locality: (buyerLocalityInput?.value || "").trim(),
+    province: (buyerProvinceInput?.value || "").trim(),
+    phone: (buyerPhoneInput?.value || "").trim(),
+    notes: (buyerNotesInput?.value || "").trim(),
+  };
 
   let message = "";
   if (buyerType && BUYER_TYPE_WA_LABELS[buyerType]) {
     message += `*${BUYER_TYPE_WA_LABELS[buyerType]}*\n\n`;
   }
   message += "¡Hola! 👋 Quiero hacer el siguiente pedido:\n\n";
+
+  // Datos de contacto del cliente
+  message += "*Mis datos:*\n";
+  if (info.name) message += `👤 Nombre: ${info.name}\n`;
+  if (info.locality || info.province) {
+    const lugar = [info.locality, info.province].filter(Boolean).join(", ");
+    message += `📍 Localidad/Provincia: ${lugar}\n`;
+  }
+  if (info.phone) message += `📞 Teléfono: ${info.phone}\n`;
+  if (info.notes) message += `📝 Observaciones: ${info.notes}\n`;
+  message += "\n*Productos:*\n";
+
   items.forEach((item) => {
     message += `▪ ${item.qty}x ${item.name}`;
     if (item.category) message += ` (${item.category})`;
@@ -1347,6 +1456,12 @@ function sendOrderToWhatsApp() {
   if (!buyerType) {
     showToast("Elegí cómo comprar", "error", "Decinos si es por mayor o por menor antes de enviar");
     openBuyerTypeModal();
+    return;
+  }
+
+  const { valid: formValid } = readAndValidateBuyerForm();
+  if (!formValid) {
+    showToast("Faltan datos", "error", "Completá nombre, localidad y provincia para continuar");
     return;
   }
 
@@ -1669,6 +1784,84 @@ function setupEventListeners() {
 }
 
 // ──────────────────────────────────────────────────────────
+// BRANDS MARQUEE: click para filtrar por marca
+// ──────────────────────────────────────────────────────────
+
+function setupBrandCarouselClicks() {
+  const marqueeWrapper = document.querySelector(".brands-marquee-wrapper");
+  if (!marqueeWrapper) return;
+
+  // Detectar si fue un drag/scroll en lugar de un click real
+  let pointerStartX = 0;
+  let isDragging = false;
+
+  marqueeWrapper.addEventListener("pointerdown", (e) => {
+    pointerStartX = e.clientX;
+    isDragging = false;
+  }, { passive: true });
+
+  marqueeWrapper.addEventListener("pointermove", (e) => {
+    if (Math.abs(e.clientX - pointerStartX) > 6) {
+      isDragging = true;
+    }
+  }, { passive: true });
+
+  marqueeWrapper.addEventListener("click", (e) => {
+    if (isDragging) return; // ignorar si fue un swipe
+
+    const card = e.target.closest(".brand-logo-card[data-brand]");
+    if (!card) return;
+
+    const brandName = card.dataset.brand;
+    if (!brandName) return;
+
+    // Activar filtro por esta marca (toggle: si ya está activa, la quita)
+    const isSameActive = activeBrands.size === 1 && activeBrands.has(brandName);
+
+    activeBrands.clear();
+    if (!isSameActive) {
+      activeBrands.add(brandName);
+    }
+
+    // Limpiar otros filtros para mostrar solo esa marca
+    activeCategory = "Todos";
+    activeTag = null;
+    searchTerm = "";
+    const searchEl = document.getElementById("searchInput");
+    if (searchEl) searchEl.value = "";
+
+    // Actualizar UI de filtros
+    renderCategories();
+    renderBrands();
+    renderTagPills();
+    renderProducts();
+    updateFilterSelectLabels();
+
+    // Scroll suave al catálogo
+    const catalogSection = document.getElementById("catalogo");
+    if (catalogSection) {
+      const offset = 88; // altura del nav fijo
+      const top = catalogSection.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+
+    // Toast de feedback
+    if (!isSameActive) {
+      showToast(`Mostrando productos de ${brandName}`, "ok");
+    }
+  });
+
+  // Soporte teclado (Enter/Space en cards con tabindex)
+  marqueeWrapper.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest(".brand-logo-card[data-brand]");
+    if (!card) return;
+    e.preventDefault();
+    card.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
+// ──────────────────────────────────────────────────────────
 // INIT
 // ──────────────────────────────────────────────────────────
 
@@ -1676,12 +1869,15 @@ function init() {
   buyerType = getSavedBuyerType();
   updateBuyerTypeUI();
   updateCartBadge();
+  fillBuyerFormFromStorage();
+  setupBuyerFormListeners();
   setupFilterSheetListeners();
   setupEventListeners();
   setupBuyerTypeListeners();
   setupQrModalListeners();
   setupWaWebBtnListener();
   setupFloatingWaBtn();
+  setupBrandCarouselClicks();
   initFirestoreListeners();
 
   // Si todavía no eligió mayorista/minorista, se le pide apenas entra al sitio.
