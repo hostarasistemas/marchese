@@ -4,6 +4,8 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  doc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 import {
@@ -22,9 +24,22 @@ import {
 // ──────────────────────────────────────────────────────────
 
 // Número real de WhatsApp del negocio.
-// Formato internacional, solo números (sin "+", espacios ni guiones).
-// Argentina: 54 9 + código de área (3735) + número (627215)
-const WHATSAPP_NUMBER = "5493735627215";
+// Se lee desde Firestore en el momento exacto del envío del pedido,
+// para garantizar que siempre se use el número más actualizado.
+// El fallback se usa solo si Firestore falla.
+const WHATSAPP_FALLBACK = "5493735627215";
+
+async function fetchWhatsappNumber() {
+  try {
+    const snap = await getDoc(doc(db, "config", "general"));
+    if (snap.exists() && snap.data().whatsappNumber) {
+      return snap.data().whatsappNumber;
+    }
+  } catch (err) {
+    console.warn("No se pudo leer el número de WhatsApp desde Firestore, usando fallback.", err);
+  }
+  return WHATSAPP_FALLBACK;
+}
 
 // Clave de localStorage donde se guarda si el cliente compra
 // por mayor o por menor.
@@ -1496,9 +1511,10 @@ function sendOrderToWhatsApp() {
   _doSendWhatsApp();
 }
 
-function _doSendWhatsApp() {
+async function _doSendWhatsApp() {
+  const number = await fetchWhatsappNumber();
   const message = buildWhatsAppMessage();
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const waUrl = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
   if (isMobile) {
@@ -1536,8 +1552,15 @@ function setupWaWebBtnListener() {
 function setupFloatingWaBtn() {
   const btn = document.getElementById("waFloatBtn");
   if (!btn) return;
-  const message = "¡Hola! Quería hacer una consulta sobre los productos de Marchese Golosinas 😊";
-  btn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  // Usamos click en lugar de href fijo para leer el número en el momento del tap
+  btn.removeAttribute("href");
+  btn.style.cursor = "pointer";
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const number = await fetchWhatsappNumber();
+    const message = "¡Hola! Quería hacer una consulta sobre los productos de Marchese Golosinas 😊";
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
+  });
 }
 
 // ──────────────────────────────────────────────────────────
