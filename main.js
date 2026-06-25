@@ -96,6 +96,16 @@ const buyerProvinceInput = document.getElementById("buyerProvinceInput");
 const buyerPhoneInput = document.getElementById("buyerPhoneInput");
 const buyerNotesInput = document.getElementById("buyerNotesInput");
 
+// Referencias al nuevo modal de datos del pedido
+const orderModalOverlay = document.getElementById("orderModalOverlay");
+const orderModalCloseBtn = document.getElementById("orderModalCloseBtn");
+const orderModalSendBtn  = document.getElementById("orderModalSendBtn");
+const omBuyerName        = document.getElementById("omBuyerName");
+const omBuyerLocality    = document.getElementById("omBuyerLocality");
+const omBuyerProvince    = document.getElementById("omBuyerProvince");
+const omBuyerPhone       = document.getElementById("omBuyerPhone");
+const omBuyerNotes       = document.getElementById("omBuyerNotes");
+
 const clearCartDialogOverlay = document.getElementById("clearCartDialogOverlay");
 const clearCartCancel = document.getElementById("clearCartCancel");
 const clearCartConfirm = document.getElementById("clearCartConfirm");
@@ -151,6 +161,10 @@ let buyerType = null;
 
 // Tipo de hoja de filtros mobile abierta actualmente: "cat" | "brand" | null
 let filterSheetType = null;
+
+// Paginación progresiva de productos
+const PRODUCTS_PER_PAGE = 12;
+let productsVisible = PRODUCTS_PER_PAGE;
 
 // ──────────────────────────────────────────────────────────
 // UTILIDADES
@@ -876,7 +890,7 @@ function productCardHtml(product) {
     </div>`;
 }
 
-function renderProducts() {
+function renderProducts(resetPagination = true) {
   if (!productsLoaded) {
     productGrid.innerHTML = `
       <div class="state-msg">
@@ -906,7 +920,38 @@ function renderProducts() {
     return;
   }
 
-  productGrid.innerHTML = filtered.map(productCardHtml).join("");
+  // Al cambiar filtros/búsqueda siempre volvemos a mostrar desde el principio
+  if (resetPagination) {
+    productsVisible = PRODUCTS_PER_PAGE;
+  }
+
+  const visible = filtered.slice(0, productsVisible);
+  const remaining = filtered.length - productsVisible;
+
+  const cardsHtml = visible.map(productCardHtml).join("");
+
+  const loadMoreHtml = remaining > 0
+    ? `<div class="load-more-wrap" id="loadMoreWrap">
+        <button type="button" class="btn-load-more" id="loadMoreBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+          Ver más productos
+          <span class="load-more-count">${remaining} restante${remaining === 1 ? "" : "s"}</span>
+        </button>
+      </div>`
+    : "";
+
+  productGrid.innerHTML = cardsHtml + loadMoreHtml;
+
+  // Listener del botón "Ver más"
+  const loadMoreBtn = document.getElementById("loadMoreBtn");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+      productsVisible += PRODUCTS_PER_PAGE;
+      renderProducts(false);
+    });
+  }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1363,35 +1408,46 @@ function saveBuyerInfo(info) {
   }
 }
 
-// Precarga el formulario con los datos guardados de una visita anterior.
+// Precarga el formulario del modal con los datos guardados de una visita anterior.
 function fillBuyerFormFromStorage() {
   const saved = getSavedBuyerInfo();
   if (!saved) return;
-  if (buyerNameInput) buyerNameInput.value = saved.name || "";
+  if (omBuyerName)     omBuyerName.value     = saved.name     || "";
+  if (omBuyerLocality) omBuyerLocality.value = saved.locality || "";
+  if (omBuyerProvince) omBuyerProvince.value = saved.province || "";
+  if (omBuyerPhone)    omBuyerPhone.value    = saved.phone    || "";
+  if (omBuyerNotes)    omBuyerNotes.value    = saved.notes    || "";
+  // Sincronizar también los inputs ocultos legacy (usados en buildWhatsAppMessage)
+  if (buyerNameInput)     buyerNameInput.value     = saved.name     || "";
   if (buyerLocalityInput) buyerLocalityInput.value = saved.locality || "";
   if (buyerProvinceInput) buyerProvinceInput.value = saved.province || "";
-  if (buyerPhoneInput) buyerPhoneInput.value = saved.phone || "";
-  if (buyerNotesInput) buyerNotesInput.value = saved.notes || "";
+  if (buyerPhoneInput)    buyerPhoneInput.value    = saved.phone    || "";
+  if (buyerNotesInput)    buyerNotesInput.value    = saved.notes    || "";
 }
 
-// Lee el formulario, guarda lo tipeado y devuelve { valid, data }.
-// Si falta algún campo obligatorio, marca el/los inputs con la clase
-// "invalid" y hace foco en el primero.
+// Lee el formulario del modal, guarda, sincroniza inputs legacy y devuelve { valid, data }.
 function readAndValidateBuyerForm() {
   const data = {
-    name: (buyerNameInput?.value || "").trim(),
-    locality: (buyerLocalityInput?.value || "").trim(),
-    province: (buyerProvinceInput?.value || "").trim(),
-    phone: (buyerPhoneInput?.value || "").trim(),
-    notes: (buyerNotesInput?.value || "").trim(),
+    name:     (omBuyerName?.value     || "").trim(),
+    locality: (omBuyerLocality?.value || "").trim(),
+    province: (omBuyerProvince?.value || "").trim(),
+    phone:    (omBuyerPhone?.value    || "").trim(),
+    notes:    (omBuyerNotes?.value    || "").trim(),
   };
 
   saveBuyerInfo(data);
 
+  // Sincronizar inputs ocultos legacy (usados en buildWhatsAppMessage)
+  if (buyerNameInput)     buyerNameInput.value     = data.name;
+  if (buyerLocalityInput) buyerLocalityInput.value = data.locality;
+  if (buyerProvinceInput) buyerProvinceInput.value = data.province;
+  if (buyerPhoneInput)    buyerPhoneInput.value    = data.phone;
+  if (buyerNotesInput)    buyerNotesInput.value    = data.notes;
+
   const requiredFields = [
-    [buyerNameInput, data.name],
-    [buyerLocalityInput, data.locality],
-    [buyerProvinceInput, data.province],
+    [omBuyerName,     data.name],
+    [omBuyerLocality, data.locality],
+    [omBuyerProvince, data.province],
   ];
 
   let firstInvalid = null;
@@ -1412,7 +1468,8 @@ function readAndValidateBuyerForm() {
 }
 
 function setupBuyerFormListeners() {
-  [buyerNameInput, buyerLocalityInput, buyerProvinceInput].forEach((el) => {
+  // Limpiar clase invalid al tipear en los campos obligatorios del modal
+  [omBuyerName, omBuyerLocality, omBuyerProvince].forEach((el) => {
     if (!el) return;
     el.addEventListener("input", () => el.classList.remove("invalid"));
   });
@@ -1461,6 +1518,59 @@ function buildWhatsAppMessage(buyerInfo) {
   return message;
 }
 
+// ──────────────────────────────────────────────────────────
+// MODAL DE DATOS DEL PEDIDO
+// ──────────────────────────────────────────────────────────
+
+function openOrderModal() {
+  if (!orderModalOverlay) return;
+  // Precargar con datos guardados cada vez que se abre
+  fillBuyerFormFromStorage();
+  orderModalOverlay.classList.add("open");
+  lockBodyScroll();
+  // Foco en el primer campo vacío o en el nombre
+  setTimeout(() => {
+    const firstEmpty = [omBuyerName, omBuyerLocality, omBuyerProvince].find(
+      (el) => el && !el.value.trim()
+    );
+    (firstEmpty || omBuyerName)?.focus();
+  }, 320);
+}
+
+function closeOrderModal() {
+  if (!orderModalOverlay || !orderModalOverlay.classList.contains("open")) return;
+  orderModalOverlay.classList.remove("open");
+  unlockBodyScroll();
+}
+
+function isOrderModalOpen() {
+  return orderModalOverlay?.classList.contains("open") || false;
+}
+
+function setupOrderModalListeners() {
+  if (!orderModalOverlay) return;
+
+  orderModalCloseBtn?.addEventListener("click", closeOrderModal);
+  orderModalOverlay.addEventListener("click", (e) => {
+    if (e.target === orderModalOverlay) closeOrderModal();
+  });
+
+  orderModalSendBtn?.addEventListener("click", () => {
+    const { valid } = readAndValidateBuyerForm();
+    if (!valid) {
+      showToast("Faltan datos", "error", "Completá nombre, localidad y provincia para continuar");
+      return;
+    }
+    closeOrderModal();
+    _checkSoldOutAndSend();
+  });
+}
+
+// ──────────────────────────────────────────────────────────
+// WHATSAPP: FLUJO COMPLETO
+// ──────────────────────────────────────────────────────────
+
+// Paso 1: clic en "Continuar con el pedido" del carrito
 function sendOrderToWhatsApp() {
   const cart = getCart();
   if (Object.keys(cart).length === 0) {
@@ -1474,36 +1584,32 @@ function sendOrderToWhatsApp() {
     return;
   }
 
-  const { valid: formValid } = readAndValidateBuyerForm();
-  if (!formValid) {
-    showToast("Faltan datos", "error", "Completá nombre, localidad y provincia para continuar");
-    return;
-  }
+  // Abrir el modal de datos (el envío real ocurre desde adentro del modal)
+  openOrderModal();
+}
 
-  // Filtrar productos que fueron desactivados (agotados) desde que se agregaron
+// Paso 2: validación de agotados y envío
+function _checkSoldOutAndSend() {
+  const cart = getCart();
   const soldOutItems = Object.values(cart).filter((item) => {
     const live = allProducts.find((p) => p.id === item.id);
     return !live || live.active === false;
   });
 
   if (soldOutItems.length > 0) {
-    // Quitar los agotados del carrito automáticamente
     soldOutItems.forEach((item) => removeFromCart(item.id));
     updateCartBadge();
     renderCart();
     renderProducts();
 
-    // Si quedó el carrito vacío luego de sacar los agotados, avisar y no enviar
     const remaining = getCart();
     if (Object.keys(remaining).length === 0) {
       showToast("Sin productos disponibles", "error", "Todos los productos de tu pedido se agotaron");
       return;
     }
 
-    // Había algo agotado pero quedan ítems: avisar y continuar
     const names = soldOutItems.map((i) => i.name).join(", ");
     showToast("Productos agotados quitados", "error", `Se eliminaron del pedido: ${names}`);
-    // Dar un momento para que el usuario vea el aviso antes de abrir WA
     setTimeout(() => _doSendWhatsApp(), 1200);
     return;
   }
@@ -1784,6 +1890,10 @@ function setupEventListeners() {
   // Cerrar carrito / modal / lightbox / dialog con tecla Escape
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      if (isOrderModalOpen()) {
+        closeOrderModal();
+        return;
+      }
       if (buyerModalOverlay && buyerModalOverlay.classList.contains("open")) {
         closeBuyerTypeModal();
         return;
@@ -1897,6 +2007,7 @@ function init() {
   setupFilterSheetListeners();
   setupEventListeners();
   setupBuyerTypeListeners();
+  setupOrderModalListeners();
   setupQrModalListeners();
   setupWaWebBtnListener();
   setupFloatingWaBtn();
