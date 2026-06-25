@@ -69,7 +69,7 @@
         .logo-name .logo-marchese { color: var(--amber); }
         .logo-name .logo-golosinas { color: var(--accent-blue); }
         .logo-img {
-            height: 56px; width: auto; display: block;
+            height: 70px; width: auto; display: block;
         }
         .logo-tag {
             font-size: 0.7rem; font-weight: 600;
@@ -788,7 +788,7 @@
 
             .logo-name { font-size: 1.15rem; }
             .logo-tag { display: none; }
-            .logo-img { height: 47px; }
+            .logo-img { height: 65px; }
 
             /* Carrito: solo ícono + badge, sin texto */
             .cart-btn { padding: 0.45rem 0.6rem; font-size: 0; gap: 0; }
@@ -914,6 +914,42 @@
 
         .cat-btn.hidden-item, .brand-check.hidden-item { display: none; }
         .cat-btn.hidden-item.visible, .brand-check.hidden-item.visible { display: flex; }
+
+        /* ── Botón Ver más productos ── */
+        .load-more-wrap {
+          grid-column: 1 / -1;
+          display: flex;
+          justify-content: center;
+          padding: 1.5rem 0 .5rem;
+        }
+        .btn-load-more {
+          display: inline-flex;
+          align-items: center;
+          gap: .55rem;
+          background: var(--surface);
+          border: 1.5px solid var(--border);
+          border-radius: 999px;
+          padding: .65rem 1.5rem;
+          font-size: .9rem;
+          font-weight: 600;
+          color: var(--text);
+          cursor: pointer;
+          transition: background .18s, border-color .18s, box-shadow .18s;
+        }
+        .btn-load-more:hover {
+          background: var(--amber-light);
+          border-color: var(--amber);
+          box-shadow: 0 2px 8px rgba(0,0,0,.07);
+        }
+        .btn-load-more svg { flex-shrink: 0; opacity: .7; }
+        .load-more-count {
+          background: var(--amber-light);
+          color: var(--amber-dark, #92400e);
+          font-size: .75rem;
+          font-weight: 700;
+          padding: .1rem .55rem;
+          border-radius: 999px;
+        }
 
         /* ══════════════════════════════════════════════════
            BUSCADOR
@@ -1260,41 +1296,133 @@
         }
         .btn-clear-cart:hover { color: var(--red); }
 
-        /* ── Formulario de datos del comprador (en el carrito) ── */
-        .cart-buyer-form {
-            display: flex; flex-direction: column; gap: 0.7rem;
-            border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border);
-            padding: 0.9rem 0; margin: 0.1rem 0;
+        /* Botón "Continuar con el pedido" en el footer del carrito */
+        .btn-continue-order {
+            display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+            background: var(--amber); color: #fff; border: none;
+            font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.95rem;
+            padding: 0.9rem; border-radius: 10px; cursor: pointer;
+            transition: background .2s, transform .1s;
         }
-        .cart-buyer-form-title {
-            font-size: 0.72rem; font-weight: 700; color: var(--text);
-            text-transform: uppercase; letter-spacing: 0.06em;
+        .btn-continue-order:hover { background: var(--amber-dark, #b45309); }
+        .btn-continue-order:active { transform: scale(.98); }
+
+        /* ══════════════════════════════════════════════════
+           MODAL DE DATOS DEL COMPRADOR
+        ══════════════════════════════════════════════════ */
+        .order-modal-overlay {
+            position: fixed; inset: 0; z-index: 1100;
+            background: rgba(0,0,0,0.45);
+            display: flex; align-items: flex-end; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity .28s ease;
         }
+        .order-modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .order-modal {
+            background: var(--white); width: 100%; max-width: 520px;
+            border-radius: 20px 20px 0 0;
+            padding: 0 1.5rem 2rem;
+            max-height: 92dvh; overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform .32s cubic-bezier(.32,1,.6,1);
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+        .order-modal-overlay.open .order-modal { transform: translateY(0); }
+
+        /* Handle visual tipo sheet */
+        .order-modal-handle {
+            width: 36px; height: 4px; border-radius: 99px;
+            background: var(--border-dark); margin: 0.85rem auto 0;
+            flex-shrink: 0;
+        }
+
+        .order-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 0.25rem;
+        }
+        .order-modal-title {
+            font-size: 1.1rem; font-weight: 800; color: var(--text);
+        }
+        .order-modal-close {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-mid); transition: background .15s;
+            flex-shrink: 0;
+        }
+        .order-modal-close:hover { background: var(--border); color: var(--text); }
+
+        .order-modal-badge {
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            background: var(--amber-light); color: var(--text-mid);
+            font-size: 0.75rem; font-weight: 700;
+            padding: 0.3rem 0.75rem; border-radius: 999px;
+            width: fit-content;
+        }
+        .order-modal-badge-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--amber); flex-shrink: 0;
+        }
+
+        /* Formulario dentro del modal */
+        .order-form { display: flex; flex-direction: column; gap: 0.85rem; }
+        .order-form-row { display: flex; flex-direction: column; gap: 0.32rem; }
+        .order-form-row-split { flex-direction: row; gap: 0.65rem; }
+        .order-form-row-split > .order-form-row { flex: 1 1 0; min-width: 0; }
+        .order-form-label {
+            font-size: 0.78rem; font-weight: 600; color: var(--text-mid);
+        }
+        .order-form-label .req { color: var(--red); }
+        .order-form-label .opt { color: var(--muted); font-weight: 500; }
+        .order-form-input {
+            width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: 10px; padding: 0.7rem 0.9rem;
+            font-family: 'DM Sans', sans-serif; font-size: 0.95rem; color: var(--text);
+            outline: none; transition: border-color .15s, background .15s, box-shadow .15s;
+            box-sizing: border-box;
+        }
+        .order-form-input::placeholder { color: var(--muted); }
+        .order-form-input:focus {
+            border-color: var(--amber-mid); background: var(--white);
+            box-shadow: 0 0 0 3px rgba(245,184,66,.15);
+        }
+        .order-form-input.invalid {
+            border-color: var(--red); background: var(--red-light);
+            box-shadow: 0 0 0 3px rgba(239,68,68,.1);
+        }
+        textarea.order-form-input {
+            resize: vertical; min-height: 62px; font-family: 'DM Sans', sans-serif;
+        }
+        .order-form-hint { font-size: 0.72rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+        .order-modal-actions { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.25rem; }
+
+        /* Desktop: modal centrado, no bottom-sheet */
+        @media (min-width: 600px) {
+            .order-modal-overlay { align-items: center; }
+            .order-modal {
+                border-radius: 20px; max-height: 90dvh;
+                transform: scale(.94) translateY(12px);
+                box-shadow: 0 24px 64px rgba(0,0,0,.18);
+            }
+            .order-modal-overlay.open .order-modal { transform: scale(1) translateY(0); }
+            .order-modal-handle { display: none; }
+        }
+
+        @media (max-width: 420px) {
+            .order-form-row-split { flex-direction: column; }
+        }
+
+        /* ── Formulario legacy (cart-form-*) — mantener por si hay refs residuales ── */
+        .cart-buyer-form { display: none; }
         .cart-form-row { display: flex; flex-direction: column; gap: 0.32rem; }
-        .cart-form-row-split {
-            flex-direction: row; gap: 0.6rem;
-        }
-        .cart-form-row-split > .cart-form-row { flex: 1 1 0; min-width: 0; }
-        .cart-form-label {
-            font-size: 0.74rem; font-weight: 600; color: var(--text-mid);
-        }
-        .cart-form-label .req { color: var(--red); }
-        .cart-form-label .opt { color: var(--muted); font-weight: 500; }
         .cart-form-input {
             width: 100%; background: var(--surface); border: 1px solid var(--border);
             border-radius: 8px; padding: 0.6rem 0.75rem;
             font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--text);
-            outline: none; transition: border-color .15s, background .15s; box-sizing: border-box;
+            outline: none; box-sizing: border-box;
         }
-        .cart-form-input::placeholder { color: var(--muted); }
-        .cart-form-input:focus { border-color: var(--amber-mid); background: var(--white); }
         .cart-form-input.invalid { border-color: var(--red); background: var(--red-light); }
-        textarea.cart-form-input { resize: vertical; min-height: 52px; font-family: 'DM Sans', sans-serif; }
-        .cart-form-hint { font-size: 0.7rem; color: var(--muted); margin: 0; }
-
-        @media (max-width: 420px) {
-            .cart-form-row-split { flex-direction: column; }
-        }
 
         /* ══════════════════════════════════════════════════
            TOASTS
@@ -2452,44 +2580,20 @@
             <strong id="cartTotalUnits">0</strong>
         </div>
 
-        <div class="cart-buyer-form" id="cartBuyerForm">
-            <div class="cart-buyer-form-title">Tus datos para el pedido</div>
-
-            <div class="cart-form-row">
-                <label class="cart-form-label" for="buyerNameInput">Nombre y apellido <span class="req">*</span></label>
-                <input type="text" id="buyerNameInput" class="cart-form-input" placeholder="Ej: Juan Pérez" autocomplete="name">
-            </div>
-
-            <div class="cart-form-row cart-form-row-split">
-                <div class="cart-form-row">
-                    <label class="cart-form-label" for="buyerLocalityInput">Localidad <span class="req">*</span></label>
-                    <input type="text" id="buyerLocalityInput" class="cart-form-input" placeholder="Ej: Resistencia" autocomplete="address-level2">
-                </div>
-                <div class="cart-form-row">
-                    <label class="cart-form-label" for="buyerProvinceInput">Provincia <span class="req">*</span></label>
-                    <input type="text" id="buyerProvinceInput" class="cart-form-input" placeholder="Ej: Chaco" autocomplete="address-level1">
-                </div>
-            </div>
-
-            <div class="cart-form-row">
-                <label class="cart-form-label" for="buyerPhoneInput">Teléfono <span class="opt">(opcional, recomendado)</span></label>
-                <input type="tel" id="buyerPhoneInput" class="cart-form-input" placeholder="Ej: 3624 123456" autocomplete="tel">
-            </div>
-
-            <div class="cart-form-row">
-                <label class="cart-form-label" for="buyerNotesInput">Observaciones <span class="opt">(opcional)</span></label>
-                <textarea id="buyerNotesInput" class="cart-form-input cart-form-textarea" rows="2" placeholder="Horario de entrega, referencias, aclaraciones..."></textarea>
-            </div>
-
-            <p class="cart-form-hint" id="cartFormHint">* Datos obligatorios para poder coordinar tu pedido.</p>
+        <!-- Inputs ocultos: mantienen IDs para compatibilidad con main.js -->
+        <div style="display:none;" aria-hidden="true">
+            <input id="buyerNameInput" type="text" autocomplete="name">
+            <input id="buyerLocalityInput" type="text" autocomplete="address-level2">
+            <input id="buyerProvinceInput" type="text" autocomplete="address-level1">
+            <input id="buyerPhoneInput" type="tel" autocomplete="tel">
+            <textarea id="buyerNotesInput"></textarea>
         </div>
 
-        <button class="btn-whatsapp" id="cartWhatsappBtn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.6 6.32A8.86 8.86 0 0012.05 3.6c-4.9 0-8.9 4-8.9 8.9 0 1.57.41 3.1 1.2 4.45L3 21l4.18-1.3a8.9 8.9 0 004.87 1.42h.01c4.9 0 8.9-4 8.9-8.9 0-2.38-.93-4.61-2.36-6.3zm-5.55 13.7h-.01a7.4 7.4 0 01-3.77-1.03l-.27-.16-2.8.87.88-2.74-.18-.28a7.39 7.39 0 01-1.13-3.94c0-4.08 3.32-7.4 7.4-7.4 1.98 0 3.83.77 5.23 2.17a7.34 7.34 0 012.16 5.23c0 4.08-3.33 7.4-7.41 7.4z"/>
-                <path d="M16.05 14.04c-.23-.12-1.37-.68-1.58-.75-.21-.08-.37-.12-.52.11-.16.23-.6.75-.74.91-.13.16-.27.18-.5.06-.23-.11-.96-.35-1.83-1.13-.68-.6-1.13-1.34-1.27-1.57-.13-.23-.01-.35.11-.47.13-.12.29-.31.43-.47.14-.16.19-.27.29-.45.1-.18.05-.34-.02-.46-.07-.13-.6-1.45-.83-1.99-.21-.5-.43-.43-.6-.44-.15-.01-.34-.01-.52-.01-.18 0-.47.07-.72.34-.25.27-.96.94-.96 2.28 0 1.35.98 2.65 1.12 2.83.13.18 1.86 2.84 4.5 3.87 2.65 1.03 2.65.69 3.13.65.48-.05 1.37-.56 1.56-1.1.19-.54.19-1 .13-1.1-.05-.1-.21-.16-.44-.27z"/>
+        <button class="btn-continue-order" id="cartWhatsappBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
             </svg>
-            Enviar pedido por WhatsApp
+            Continuar con el pedido
         </button>
         <button class="btn-clear-cart" id="cartClearBtn">Vaciar pedido</button>
     </div>
@@ -2577,6 +2681,69 @@
         <div class="custom-dialog-actions">
             <button class="custom-dialog-btn cancel" id="clearCartCancel">Cancelar</button>
             <button class="custom-dialog-btn confirm" id="clearCartConfirm">Vaciar pedido</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL DE DATOS DEL PEDIDO ─────────────────────── -->
+<div class="order-modal-overlay" id="orderModalOverlay">
+    <div class="order-modal" id="orderModal">
+        <div class="order-modal-handle"></div>
+
+        <div class="order-modal-header">
+            <div class="order-modal-badge">
+                <span class="order-modal-badge-dot"></span>
+                Paso 2 de 2
+            </div>
+            <button class="order-modal-close" id="orderModalCloseBtn" aria-label="Cerrar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div>
+            <h2 class="order-modal-title">Tus datos para el pedido</h2>
+        </div>
+
+        <div class="order-form">
+            <div class="order-form-row">
+                <label class="order-form-label" for="omBuyerName">Nombre y apellido <span class="req">*</span></label>
+                <input type="text" id="omBuyerName" class="order-form-input" placeholder="Ej: Juan Pérez" autocomplete="name" inputmode="text">
+            </div>
+
+            <div class="order-form-row order-form-row-split">
+                <div class="order-form-row">
+                    <label class="order-form-label" for="omBuyerLocality">Localidad <span class="req">*</span></label>
+                    <input type="text" id="omBuyerLocality" class="order-form-input" placeholder="Ej: Resistencia" autocomplete="address-level2">
+                </div>
+                <div class="order-form-row">
+                    <label class="order-form-label" for="omBuyerProvince">Provincia <span class="req">*</span></label>
+                    <input type="text" id="omBuyerProvince" class="order-form-input" placeholder="Ej: Chaco" autocomplete="address-level1">
+                </div>
+            </div>
+
+            <div class="order-form-row">
+                <label class="order-form-label" for="omBuyerPhone">Teléfono <span class="opt">(opcional, recomendado)</span></label>
+                <input type="tel" id="omBuyerPhone" class="order-form-input" placeholder="Ej: 3624 123456" autocomplete="tel" inputmode="tel">
+            </div>
+
+            <div class="order-form-row">
+                <label class="order-form-label" for="omBuyerNotes">Observaciones <span class="opt">(opcional)</span></label>
+                <textarea id="omBuyerNotes" class="order-form-input" rows="2" placeholder="Horario de entrega, referencias, aclaraciones..."></textarea>
+            </div>
+
+            <p class="order-form-hint">* Campos obligatorios para coordinar tu pedido. Tus datos se guardan para la próxima vez.</p>
+        </div>
+
+        <div class="order-modal-actions">
+            <button class="btn-whatsapp" id="orderModalSendBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.6 6.32A8.86 8.86 0 0012.05 3.6c-4.9 0-8.9 4-8.9 8.9 0 1.57.41 3.1 1.2 4.45L3 21l4.18-1.3a8.9 8.9 0 004.87 1.42h.01c4.9 0 8.9-4 8.9-8.9 0-2.38-.93-4.61-2.36-6.3zm-5.55 13.7h-.01a7.4 7.4 0 01-3.77-1.03l-.27-.16-2.8.87.88-2.74-.18-.28a7.39 7.39 0 01-1.13-3.94c0-4.08 3.32-7.4 7.4-7.4 1.98 0 3.83.77 5.23 2.17a7.34 7.34 0 012.16 5.23c0 4.08-3.33 7.4-7.41 7.4z"/>
+                    <path d="M16.05 14.04c-.23-.12-1.37-.68-1.58-.75-.21-.08-.37-.12-.52.11-.16.23-.6.75-.74.91-.13.16-.27.18-.5.06-.23-.11-.96-.35-1.83-1.13-.68-.6-1.13-1.34-1.27-1.57-.13-.23-.01-.35.11-.47.13-.12.29-.31.43-.47.14-.16.19-.27.29-.45.1-.18.05-.34-.02-.46-.07-.13-.6-1.45-.83-1.99-.21-.5-.43-.43-.6-.44-.15-.01-.34-.01-.52-.01-.18 0-.47.07-.72.34-.25.27-.96.94-.96 2.28 0 1.35.98 2.65 1.12 2.83.13.18 1.86 2.84 4.5 3.87 2.65 1.03 2.65.69 3.13.65.48-.05 1.37-.56 1.56-1.1.19-.54.19-1 .13-1.1-.05-.1-.21-.16-.44-.27z"/>
+                </svg>
+                Enviar pedido por WhatsApp
+            </button>
         </div>
     </div>
 </div>
