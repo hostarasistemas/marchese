@@ -213,15 +213,99 @@
         /* ══════════════════════════════════════════════════
            CARRUSEL PUBLICITARIO
         ══════════════════════════════════════════════════ */
+
+        /* Contenedor externo con decoración */
+        .carousel-frame {
+            position: relative;
+            padding: 0;
+        }
+
+        /* Forma decorativa grande detrás — blob ámbar difuso */
+        .carousel-frame::before {
+            content: '';
+            position: absolute;
+            top: -28px; right: -28px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(232,146,10,0.13) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        /* Segunda forma — esquina inferior izquierda */
+        .carousel-frame::after {
+            content: '';
+            position: absolute;
+            bottom: -20px; left: -20px;
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(232,146,10,0.09) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Línea decorativa ámbar — esquina superior derecha */
+        .carousel-accent-tr {
+            position: absolute;
+            top: -10px; right: -10px;
+            width: 48px; height: 48px;
+            border-top: 3px solid var(--amber);
+            border-right: 3px solid var(--amber);
+            border-radius: 0 10px 0 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        /* Línea decorativa ámbar — esquina inferior izquierda */
+        .carousel-accent-bl {
+            position: absolute;
+            bottom: -10px; left: -10px;
+            width: 48px; height: 48px;
+            border-bottom: 3px solid var(--amber);
+            border-left: 3px solid var(--amber);
+            border-radius: 0 0 0 10px;
+            z-index: 1;
+            pointer-events: none;
+        }
+        /* Puntitos decorativos — esquina inferior derecha */
+        .carousel-dots-deco {
+            position: absolute;
+            bottom: -16px; right: 24px;
+            display: grid;
+            grid-template-columns: repeat(4, 6px);
+            grid-template-rows: repeat(3, 6px);
+            gap: 5px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .carousel-dots-deco span {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--amber);
+            opacity: 0.25;
+            display: block;
+        }
+
         .hero-carousel {
             position: relative;
-            border-radius: 20px;
+            border-radius: 18px;
             overflow: hidden;
             background: var(--surface);
             border: 1px solid var(--border);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.06);
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.07),
+                0 0 0 6px rgba(232,146,10,0.06);
             aspect-ratio: 16/9;
             min-height: 280px;
+            z-index: 1;
+        }
+        /* Gradiente sutil sobre la imagen — hace que los dots queden legibles */
+        .hero-carousel::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 55px;
+            background: linear-gradient(to top, rgba(0,0,0,0.28) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
         }
         .carousel-track {
             display: flex;
@@ -1593,6 +1677,30 @@
         }
         .qr-frame canvas { display: block; border-radius: 8px; }
 
+        /* Loader del QR */
+        .qr-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 200px;
+            height: 200px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+        .qr-spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--amber);
+            border-radius: 50%;
+            animation: qr-spin 0.8s linear infinite;
+        }
+        @keyframes qr-spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Esquinas decorativas ámbar */
         .qr-corner {
             position: absolute;
@@ -2176,6 +2284,16 @@
             .hero-carousel {
                 min-height: 200px;
             }
+            .carousel-accent-tr,
+            .carousel-accent-bl {
+                width: 32px; height: 32px;
+                top: -7px; right: -7px;
+            }
+            .carousel-accent-bl {
+                top: auto; right: auto;
+                bottom: -7px; left: -7px;
+            }
+            .carousel-dots-deco { display: none; }
             .info-strip-item {
                 padding: 0.65rem 1rem;
                 min-width: 140px;
@@ -2277,26 +2395,38 @@
             </div>
 
             <!-- ── CARRUSEL PUBLICITARIO ──────────────── -->
-            <div class="hero-carousel" id="heroCarousel">
-                <div class="carousel-skeleton" id="carouselSkeleton"></div>
-                <div class="carousel-track" id="carouselTrack"></div>
-                <button class="carousel-arrow carousel-prev" id="carouselPrev" aria-label="Anterior">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                </button>
-                <button class="carousel-arrow carousel-next" id="carouselNext" aria-label="Siguiente">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </button>
-                <div class="carousel-dots" id="carouselDots"></div>
-                <div class="carousel-empty" id="carouselEmpty" style="display:none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3" style="color:var(--border-dark)">
-                        <rect x="3" y="5" width="18" height="14" rx="3"/>
-                        <path stroke-linecap="round" d="M3 10h18"/>
-                    </svg>
-                    <span>Próximamente novedades</span>
+            <div class="carousel-frame">
+                <!-- Acentos decorativos en las esquinas -->
+                <div class="carousel-accent-tr"></div>
+                <div class="carousel-accent-bl"></div>
+                <!-- Puntitos decorativos -->
+                <div class="carousel-dots-deco">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+
+                <div class="hero-carousel" id="heroCarousel">
+                    <div class="carousel-skeleton" id="carouselSkeleton"></div>
+                    <div class="carousel-track" id="carouselTrack"></div>
+                    <button class="carousel-arrow carousel-prev" id="carouselPrev" aria-label="Anterior">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <button class="carousel-arrow carousel-next" id="carouselNext" aria-label="Siguiente">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    <div class="carousel-dots" id="carouselDots"></div>
+                    <div class="carousel-empty" id="carouselEmpty" style="display:none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3" style="color:var(--border-dark)">
+                            <rect x="3" y="5" width="18" height="14" rx="3"/>
+                            <path stroke-linecap="round" d="M3 10h18"/>
+                        </svg>
+                        <span>Próximamente novedades</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2775,6 +2905,10 @@
             <span class="qr-corner tr"></span>
             <span class="qr-corner bl"></span>
             <span class="qr-corner br"></span>
+            <div id="qrLoader" class="qr-loader">
+                <div class="qr-spinner"></div>
+                <span>Generando QR…</span>
+            </div>
             <canvas id="qrCanvas"></canvas>
         </div>
 
