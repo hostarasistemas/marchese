@@ -768,7 +768,13 @@ function getFilteredProducts() {
   return allProducts.filter((p) => {
     if (activeCategory !== "Todos" && p.category !== activeCategory) return false;
     if (activeBrands.size > 0 && !activeBrands.has(p.brand)) return false;
-    if (activeTag && (p.tag || "").trim().toLowerCase() !== activeTag.toLowerCase()) return false;
+    if (activeTag) {
+      // Soporta campo tags[] nuevo y tag string legacy
+      const hasTag = Array.isArray(p.tags) && p.tags.length > 0
+        ? p.tags.some(t => t.trim().toLowerCase() === activeTag.toLowerCase())
+        : (p.tag || "").trim().toLowerCase() === activeTag.toLowerCase();
+      if (!hasTag) return false;
+    }
     if (searchTerm) {
       const haystack = `${p.name || ""} ${p.description || ""}`.toLowerCase();
       if (!haystack.includes(searchTerm)) return false;
@@ -794,11 +800,17 @@ const TAG_ORDER = [
 function renderTagPills() {
   if (!tagPillsContainer || !tagPillsWrap) return;
 
-  // Recolectar tags únicos de productos activos
+  // Recolectar tags únicos de productos activos — soporta tags[] array y tag string legacy
   const tagsSet = new Set();
   allProducts
-    .filter((p) => p.active !== false && p.tag && p.tag.trim())
-    .forEach((p) => tagsSet.add(p.tag.trim()));
+    .filter((p) => p.active !== false)
+    .forEach((p) => {
+      if (Array.isArray(p.tags) && p.tags.length > 0) {
+        p.tags.forEach(t => { if (t && t.trim()) tagsSet.add(t.trim()); });
+      } else if (p.tag && p.tag.trim()) {
+        tagsSet.add(p.tag.trim());
+      }
+    });
 
   if (tagsSet.size === 0) {
     tagPillsWrap.style.display = "none";
@@ -854,12 +866,16 @@ function productCardHtml(product) {
   const { bg, inner } = getProductVisual(product);
   const isOutOfStock = product.active === false;
 
-  // Badge "Agotado" tiene prioridad; si hay tag y está disponible, se muestra ese
-  const tag = isOutOfStock
+  // Badge "Agotado" tiene prioridad; si hay tags y está disponible, se muestran esos
+  const tagInner = isOutOfStock
     ? `<span class="card-tag card-tag-soldout">Agotado</span>`
-    : product.tag
-    ? `<span class="card-tag">${escapeHtml(product.tag)}</span>`
-    : "";
+    : (() => {
+        const tagsArr = Array.isArray(product.tags) && product.tags.length > 0
+          ? product.tags
+          : (product.tag ? [product.tag] : []);
+        return tagsArr.map(t => `<span class="card-tag">${escapeHtml(t)}</span>`).join("");
+      })();
+  const tag = tagInner ? `<div class="card-tags">${tagInner}</div>` : "";
 
   // Imagen y nombre solo clickeables si el producto está disponible
   const imgDataAttr = isOutOfStock ? "" : ` data-id="${product.id}"`;
@@ -977,9 +993,13 @@ function getVariantLabel(product) {
 
 function modalContentHtml(product) {
   const { bg, inner } = getProductVisual(product);
-  const tag = product.tag
-    ? `<span class="card-tag">${escapeHtml(product.tag)}</span>`
-    : "";
+  const tagInner = (() => {
+    const tagsArr = Array.isArray(product.tags) && product.tags.length > 0
+      ? product.tags
+      : (product.tag ? [product.tag] : []);
+    return tagsArr.map(t => `<span class="card-tag">${escapeHtml(t)}</span>`).join("");
+  })();
+  const tag = tagInner ? `<div class="card-tags">${tagInner}</div>` : "";
   const variants = getVariantGroup(product);
 
   // Siempre: stepper de cantidad + botón agregar
