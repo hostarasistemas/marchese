@@ -1263,6 +1263,11 @@ function renderQRCode(url) {
   const frame = document.getElementById("qrFrame");
   // Eliminar canvas y reemplazar por img si ya existe
   canvas.remove();
+
+  // Mostrar loader mientras carga
+  const loader = document.getElementById("qrLoader");
+  if (loader) loader.style.display = "flex";
+
   let img = frame.querySelector("img.qr-img");
   if (!img) {
     img = document.createElement("img");
@@ -1270,10 +1275,23 @@ function renderQRCode(url) {
     img.width = size;
     img.height = size;
     img.style.borderRadius = "8px";
-    img.style.display = "block";
+    img.style.display = "none"; // Oculta hasta que cargue
     // Insertar antes del primer qr-corner
     frame.insertBefore(img, frame.querySelector(".qr-corner"));
+  } else {
+    img.style.display = "none"; // Ocultar mientras recarga
   }
+
+  img.onload = () => {
+    if (loader) loader.style.display = "none";
+    img.style.display = "block";
+  };
+  img.onerror = () => {
+    if (loader) {
+      loader.innerHTML = `<span style="font-size:0.8rem;color:var(--red);text-align:center;padding:0 1rem">No se pudo generar el QR.<br>Usá el botón de abajo.</span>`;
+    }
+  };
+
   img.src = qrUrl;
   img.alt = "QR código de WhatsApp";
 }
