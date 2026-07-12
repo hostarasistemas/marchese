@@ -722,6 +722,7 @@ function setupFilterSheetListeners() {
       renderProducts();
       updateFilterSheetApplyLabel();
       closeFilterSheet(); // selección única: aplica y cierra
+      scrollToCatalog();
     } else if (filterSheetType === "brand") {
       const allBtn = e.target.closest(".filter-option-check[data-brand-all]");
       if (allBtn) {
@@ -740,6 +741,7 @@ function setupFilterSheetListeners() {
       renderProducts();
       renderFilterSheetBody(filterSheetSearch.value);
       updateFilterSheetApplyLabel();
+      scrollToCatalog();
       // multi-selección: la hoja queda abierta para elegir varias marcas
     }
   });
@@ -755,6 +757,7 @@ function setupFilterSheetListeners() {
     renderProducts();
     renderFilterSheetBody(filterSheetSearch.value);
     updateFilterSheetApplyLabel();
+    scrollToCatalog();
   });
 
   filterSheetApplyBtn.addEventListener("click", closeFilterSheet);
@@ -764,8 +767,20 @@ function setupFilterSheetListeners() {
 // FILTRADO Y RENDER DE PRODUCTOS
 // ──────────────────────────────────────────────────────────
 
+// Lleva el scroll al inicio de la sección de catálogo. Se usa cada vez que
+// se cambia de categoría o marca, para que el usuario siempre vea los
+// resultados desde arriba (evita que quede "en blanco" si el filtro
+// elegido tiene pocos productos y la página estaba scrolleada más abajo).
+function scrollToCatalog() {
+  const catalogSection = document.getElementById("catalogo");
+  if (!catalogSection) return;
+  const offset = 88; // altura del nav fijo
+  const top = catalogSection.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top, behavior: "smooth" });
+}
+
 function getFilteredProducts() {
-  return allProducts.filter((p) => {
+  const filtered = allProducts.filter((p) => {
     if (activeCategory !== "Todos" && p.category !== activeCategory) return false;
     if (activeBrands.size > 0 && !activeBrands.has(p.brand)) return false;
     if (activeTag) {
@@ -781,6 +796,16 @@ function getFilteredProducts() {
     }
     return true;
   });
+
+  // Los productos agotados (active === false) siempre van al final.
+  // Como "filtered" ya respeta el orden de allProducts (order/nombre),
+  // separar y concatenar preserva ese orden dentro de cada grupo:
+  // los disponibles arriba en su posición normal, los agotados abajo.
+  // Si un producto se marca disponible de nuevo desde el admin, vuelve
+  // automáticamente a su lugar entre los disponibles.
+  const available = filtered.filter((p) => p.active !== false);
+  const soldOut = filtered.filter((p) => p.active === false);
+  return [...available, ...soldOut];
 }
 
 // ──────────────────────────────────────────────────────────
@@ -953,7 +978,6 @@ function renderProducts(resetPagination = true) {
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
           </svg>
           Ver más productos
-          <span class="load-more-count">${remaining} restante${remaining === 1 ? "" : "s"}</span>
         </button>
       </div>`
     : "";
@@ -1782,6 +1806,7 @@ function setupEventListeners() {
     activeCategory = btn.dataset.cat;
     renderCategories();
     renderProducts();
+    scrollToCatalog();
   });
 
   // Marcas (delegación)
@@ -1795,6 +1820,7 @@ function setupEventListeners() {
       activeBrands.delete(brand);
     }
     renderProducts();
+    scrollToCatalog();
   });
 
   // Grilla de productos (delegación: agregar / sumar / restar / ver detalles)
@@ -2009,12 +2035,7 @@ function setupBrandCarouselClicks() {
     updateFilterSelectLabels();
 
     // Scroll suave al catálogo
-    const catalogSection = document.getElementById("catalogo");
-    if (catalogSection) {
-      const offset = 88; // altura del nav fijo
-      const top = catalogSection.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top, behavior: "smooth" });
-    }
+    scrollToCatalog();
 
     // Toast de feedback
     if (!isSameActive) {
