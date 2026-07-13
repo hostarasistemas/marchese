@@ -2479,7 +2479,7 @@
             </div>
             <div>
                 <div class="info-strip-title">Horario de atención</div>
-                <div class="info-strip-sub">Lun a Vie 08:00–20:30 hs</div>
+                <div class="info-strip-sub">Lun a Vie · 08:00–12:30 y 16:00–20:30</div>
             </div>
         </div>
     </div>
@@ -2520,6 +2520,7 @@
                 <div class="brand-logo-card" data-brand="Lacasa" role="button" tabindex="0" aria-label="Ver productos Lacasa"><img src="lacasa.png" alt="Lacasa"><span class="brand-logo-name">Lacasa</span></div>
                 <div class="brand-logo-card" data-brand="Billiken" role="button" tabindex="0" aria-label="Ver productos Billiken"><img src="billiken.png" alt="Billiken"><span class="brand-logo-name">Billiken</span></div>
                 <div class="brand-logo-card" data-brand="Lipo" role="button" tabindex="0" aria-label="Ver productos Lipo"><img src="lipo.png" alt="Lipo"><span class="brand-logo-name">Lipo</span></div>
+                 <div class="brand-logo-card" data-brand="Lheritier" role="button" tabindex="0" aria-label="Ver productos Lheritier"><img src="https://lheritier.com.ar/es/images/logo.png" alt="Lheritier"><span class="brand-logo-name">Lheritier</span></div>
                 <div class="brand-logo-card" data-brand="Open Candy" role="button" tabindex="0" aria-label="Ver productos Open Candy"><img src="opencandy.png" alt="Open Candy"><span class="brand-logo-name">Open Candy</span></div>
                 <div class="brand-logo-card" data-brand="Pipas" role="button" tabindex="0" aria-label="Ver productos Pipas"><img src="pipas.png" alt="Pipas"><span class="brand-logo-name">Pipas</span></div>
                 <div class="brand-logo-card" data-brand="Don Satur" role="button" tabindex="0" aria-label="Ver productos Don Satur"><img src="donsatur.png" alt="Don Satur"><span class="brand-logo-name">Don Satur</span></div>
@@ -2653,12 +2654,33 @@
                 </svg>
                 Lun a Vie · 08:00–12:30 y 16:00–20:30
             </div>
-            <div class="footer-info">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <circle cx="12" cy="11" r="2" stroke="currentColor"/>
-                </svg>
-                Villa Ángela, Chaco
+            
+            <!-- Ubicación y Mapa 360 -->
+            <div class="footer-info" style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <circle cx="12" cy="11" r="2" stroke="currentColor"/>
+                    </svg>
+                    Villa Ángela, Chaco
+                </div>
+                
+                <!-- Contenedor del Iframe -->
+                <div style="width: 100%; margin-top: 5px;">
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!4v1783910307080!6m8!1m7!1sDKcX2O2AIinmLqiAHerq4Q!2m2!1d-27.57914468897676!2d-60.7154585913491!3f99.57051593727769!4f-2.4761149925053587!5f0.9065201830271079" 
+                        width="100%" 
+                        height="200" 
+                        style="border:0; border-radius: 8px;" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                    <!-- Enlace para abrir de forma externa usando el ID de la panorámica -->
+                    <a href="https://www.google.com/maps/@?api=1&map_action=pano&pano=DKcX2O2AIinmLqiAHerq4Q" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 8px; font-size: 14px; text-decoration: underline; color: inherit; opacity: 0.9;">
+                        Abrir vista 360° en pantalla completa
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -2686,7 +2708,6 @@
         <span class="footer-copy">Desarrollado por Hostara</span>
     </div>
 </footer>
-
 <!-- ── CARRITO (DRAWER) ──────────────────────────────── -->
 <div class="cart-overlay" id="cartOverlay"></div>
 <div class="cart-drawer" id="cartDrawer">
