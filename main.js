@@ -150,6 +150,8 @@ let allCategories = [];
 let allBrands = [];
 
 let productsLoaded = false;
+let categoriesLoaded = false;
+let brandsLoaded = false;
 
 let activeCategory = "Todos";
 let activeBrands = new Set();
@@ -360,6 +362,7 @@ function initFirestoreListeners() {
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((c) => c.active !== false)
         .sort(sortByOrderThenName);
+      categoriesLoaded = true;
       renderCategories();
     },
     (error) => console.error("Error cargando categorías:", error)
@@ -373,6 +376,7 @@ function initFirestoreListeners() {
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((b) => b.active !== false)
         .sort(sortByOrderThenName);
+      brandsLoaded = true;
       renderBrands();
     },
     (error) => console.error("Error cargando marcas:", error)
@@ -404,6 +408,46 @@ function initFirestoreListeners() {
 }
 
 // ──────────────────────────────────────────────────────────
+// SKELETONS DE CARGA (categorías, marcas, productos)
+// ──────────────────────────────────────────────────────────
+
+function renderCategorySkeletons(count = 5) {
+  const widths = [92, 75, 88, 65, 80, 70];
+  categoryContainer.innerHTML = Array.from({ length: count })
+    .map((_, i) => `<div class="skel-cat-row skel-shimmer" style="width:${widths[i % widths.length]}%;"></div>`)
+    .join("");
+}
+
+function renderBrandSkeletons(count = 4) {
+  const widths = [70, 55, 85, 60, 75];
+  brandsContainer.innerHTML = Array.from({ length: count })
+    .map((_, i) => `
+      <label class="skel-brand-row">
+        <span class="skel-checkbox skel-shimmer"></span>
+        <span class="skel-label skel-shimmer" style="width:${widths[i % widths.length]}%;"></span>
+      </label>`)
+    .join("");
+}
+
+function skeletonCardHtml() {
+  return `
+    <div class="product-card skeleton-card">
+      <div class="card-img skel-shimmer"></div>
+      <div class="card-body">
+        <div class="skel-line skel-cat"></div>
+        <div class="skel-line skel-name"></div>
+        <div class="skel-line skel-desc"></div>
+        <div class="skel-line skel-desc short"></div>
+        <div class="skel-line skel-btn"></div>
+      </div>
+    </div>`;
+}
+
+function renderProductSkeletons(count = 6) {
+  productGrid.innerHTML = Array.from({ length: count }).map(skeletonCardHtml).join("");
+}
+
+// ──────────────────────────────────────────────────────────
 // RENDER: CATEGORÍAS
 // ──────────────────────────────────────────────────────────
 
@@ -423,6 +467,13 @@ let catExpanded = false;
 let brandExpanded = false;
 
 function renderCategories() {
+  // Mientras no llegó ni la colección "categories" ni "products" todavía no hay
+  // nada de donde derivar la lista, así que mostramos el skeleton.
+  if (!categoriesLoaded && !productsLoaded) {
+    renderCategorySkeletons();
+    return;
+  }
+
   const categories = getCategoryList();
 
   // Solo contar productos activos (los agotados siguen en allProducts pero no se cuentan)
@@ -490,6 +541,12 @@ function getBrandList() {
 }
 
 function renderBrands() {
+  // Mientras no llegó ni "brands" ni "products" no hay de dónde derivar marcas.
+  if (!brandsLoaded && !productsLoaded) {
+    renderBrandSkeletons();
+    return;
+  }
+
   const brands = getBrandList();
 
   // ── Sidebar desktop ──────────────────────────────────────
@@ -933,11 +990,7 @@ function productCardHtml(product) {
 
 function renderProducts(resetPagination = true) {
   if (!productsLoaded) {
-    productGrid.innerHTML = `
-      <div class="state-msg">
-        <div class="spinner"></div>
-        <span>Cargando catálogo…</span>
-      </div>`;
+    renderProductSkeletons();
     return;
   }
 
@@ -1324,6 +1377,14 @@ const qrModalOverlay = document.getElementById("qrModalOverlay");
 const qrModalClose   = document.getElementById("qrModalClose");
 const qrWaWebBtn     = document.getElementById("qrWaWebBtn");
 
+// Diálogo "¿Ya enviaste tu pedido?" que aparece al intentar cerrar el modal QR.
+// Existe porque no hay forma de detectar automáticamente si el cliente
+// escaneó el QR con el celular y envió el mensaje: se le pregunta explícitamente
+// para decidir si el carrito debe vaciarse o no.
+const qrConfirmDialogOverlay = document.getElementById("qrConfirmDialogOverlay");
+const qrConfirmCancel = document.getElementById("qrConfirmCancel");
+const qrConfirmSend   = document.getElementById("qrConfirmSend");
+
 function openQrModal(waUrl) {
   renderQRCode(waUrl);
   if (qrWaWebBtn) qrWaWebBtn.href = waUrl;
@@ -1331,22 +1392,62 @@ function openQrModal(waUrl) {
   lockBodyScroll();
 }
 
+// Cierre "silencioso" del modal QR, sin preguntar nada.
+// Se usa solo cuando ya sabemos que el pedido se envió (ej: click en
+// "Abrir en WhatsApp Web") o cuando se cancela desde el diálogo de confirmación.
 function closeQrModal() {
   if (!qrModalOverlay || !qrModalOverlay.classList.contains("open")) return;
   qrModalOverlay.classList.remove("open");
   unlockBodyScroll();
 }
 
+function openQrConfirmDialog() {
+  if (qrConfirmDialogOverlay) qrConfirmDialogOverlay.classList.add("open");
+}
+
+function closeQrConfirmDialog() {
+  if (qrConfirmDialogOverlay) qrConfirmDialogOverlay.classList.remove("open");
+}
+
+// El modal QR solo puede cerrarse presionando la X (no con click afuera
+// ni con Escape), y al presionarla se pregunta si el pedido ya fue enviado
+// antes de vaciar el carrito.
 function setupQrModalListeners() {
   if (!qrModalOverlay) return;
-  if (qrModalClose)   qrModalClose.addEventListener("click", closeQrModal);
-  qrModalOverlay.addEventListener("click", (e) => {
-    if (e.target === qrModalOverlay) closeQrModal();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && qrModalOverlay.classList.contains("open")) {
+
+  if (qrModalClose) {
+    qrModalClose.addEventListener("click", openQrConfirmDialog);
+  }
+
+  if (qrConfirmCancel) {
+    qrConfirmCancel.addEventListener("click", () => {
+      // Todavía no lo envió: se queda en el modal QR.
+      closeQrConfirmDialog();
+    });
+  }
+
+  if (qrConfirmDialogOverlay) {
+    qrConfirmDialogOverlay.addEventListener("click", (e) => {
+      if (e.target === qrConfirmDialogOverlay) closeQrConfirmDialog();
+    });
+  }
+
+  if (qrConfirmSend) {
+    qrConfirmSend.addEventListener("click", () => {
+      // Confirmó que ya lo envió: se vacía el carrito y se cierra todo.
+      closeQrConfirmDialog();
       closeQrModal();
+      afterOrderSent();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (qrConfirmDialogOverlay && qrConfirmDialogOverlay.classList.contains("open")) {
+      closeQrConfirmDialog();
     }
+    // Nota: Escape ya NO cierra el modal QR directamente, para evitar
+    // que se pierda el pedido por accidente sin confirmar el envío.
   });
 }
 
@@ -2071,6 +2172,9 @@ function init() {
   setupWaWebBtnListener();
   setupFloatingWaBtn();
   setupBrandCarouselClicks();
+  renderCategorySkeletons();
+  renderBrandSkeletons();
+  renderProductSkeletons();
   initFirestoreListeners();
 
   // Si todavía no eligió mayorista/minorista, se le pide apenas entra al sitio.
