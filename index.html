@@ -334,6 +334,37 @@
             0%   { background-position: 200% center; }
             100% { background-position: -200% center; }
         }
+
+        /* ══════════════════════════════════════════════════
+           SKELETONS: categorías, marcas y grilla de productos
+        ══════════════════════════════════════════════════ */
+        .skel-shimmer,
+        .skel-line {
+            background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shine 1.5s infinite;
+        }
+        .skel-line { border-radius: 5px; }
+
+        /* Skeleton de card de producto (reutiliza .product-card / .card-img / .card-body
+           para heredar automáticamente todos los tamaños responsive existentes) */
+        .skeleton-card { pointer-events: none; }
+        .skeleton-card .card-img { background: var(--surface); }
+        .skeleton-card .skel-cat  { width: 38%;  height: 9px;  margin-bottom: 10px; }
+        .skeleton-card .skel-name { width: 82%;  height: 14px; margin-bottom: 8px; }
+        .skeleton-card .skel-desc { width: 100%; height: 10px; margin-bottom: 6px; }
+        .skeleton-card .skel-desc.short { width: 62%; margin-bottom: 0; }
+        .skeleton-card .skel-btn  { width: 100%; height: 44px; margin-top: 0.85rem; border-radius: 8px; }
+
+        /* Skeleton de filas de categorías y marcas */
+        .skel-cat-row, .skel-brand-row {
+            height: 34px; border-radius: 7px; margin-bottom: 4px;
+        }
+        .skel-brand-row { display: flex; align-items: center; gap: 0.6rem; padding: 0 0.25rem; }
+        .skel-brand-row .skel-checkbox {
+            width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+        }
+        .skel-brand-row .skel-label { flex: 1; height: 12px; }
         /* Flechas */
         .carousel-arrow {
             position: absolute; top: 50%; transform: translateY(-50%);
@@ -1897,12 +1928,64 @@
             color: var(--text);
         }
         .buyer-option-desc { font-size: 0.75rem; color: var(--text-mid); line-height: 1.4; }
+        .buyer-option-text { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
 
         .buyer-modal-note { font-size: 0.7rem; color: var(--muted); line-height: 1.5; }
 
         @media (max-width: 480px) {
-            .buyer-options { flex-direction: column; }
-            .buyer-modal { padding: 1.75rem 1.25rem 1.5rem; }
+            .buyer-modal {
+                padding: 1.35rem 1.1rem 1.15rem;
+                border-radius: 20px;
+            }
+            .buyer-modal-badge {
+                padding: 0.22rem 0.7rem;
+                font-size: 0.62rem;
+                margin-bottom: 0.7rem;
+            }
+            .buyer-modal-title {
+                font-size: 1.25rem;
+                margin-bottom: 0.4rem;
+            }
+            .buyer-modal-subtitle {
+                font-size: 0.78rem;
+                line-height: 1.45;
+                margin-bottom: 1.1rem;
+            }
+            .buyer-options {
+                flex-direction: row;
+                gap: 0.6rem;
+                margin-bottom: 0.75rem;
+            }
+            .buyer-option-card {
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                text-align: left;
+                gap: 0.6rem;
+                padding: 0.7rem 0.6rem;
+                border-radius: 14px;
+                min-width: 0;
+            }
+            .buyer-option-icon {
+                width: 34px; height: 34px;
+                border-radius: 10px;
+                flex-shrink: 0;
+            }
+            .buyer-option-icon svg { width: 18px; height: 18px; }
+            .buyer-option-text {
+                min-width: 0;
+                gap: 0.15rem;
+            }
+            .buyer-option-title {
+                font-size: 0.85rem;
+                overflow-wrap: break-word;
+            }
+            .buyer-option-desc {
+                font-size: 0.65rem;
+                line-height: 1.3;
+                overflow-wrap: break-word;
+            }
+            .buyer-modal-note { font-size: 0.62rem; }
         }
 
         /* ── Indicador de tipo de compra (hero / menú mobile / carrito) ── */
@@ -2621,22 +2704,83 @@
                 <div class="filter-block">
                     <div class="filter-title">Categorías</div>
                     <div class="cat-container" id="categoryContainer">
-                        <button class="cat-btn active" data-cat="Todos">Todos</button>
+                        <div class="skel-cat-row skel-shimmer"></div>
+                        <div class="skel-cat-row skel-shimmer" style="width:85%;"></div>
+                        <div class="skel-cat-row skel-shimmer" style="width:70%;"></div>
+                        <div class="skel-cat-row skel-shimmer" style="width:90%;"></div>
                     </div>
                 </div>
                 <div class="filter-block">
                     <div class="filter-title">Marcas</div>
                     <div class="brands-container" id="brandsContainer">
-                        <!-- Las marcas se cargan dinámicamente desde Firestore -->
+                        <label class="skel-brand-row"><span class="skel-checkbox skel-shimmer"></span><span class="skel-label skel-shimmer"></span></label>
+                        <label class="skel-brand-row"><span class="skel-checkbox skel-shimmer"></span><span class="skel-label skel-shimmer" style="width:60%;"></span></label>
+                        <label class="skel-brand-row"><span class="skel-checkbox skel-shimmer"></span><span class="skel-label skel-shimmer" style="width:80%;"></span></label>
                     </div>
                 </div>
             </div>
         </aside>
 
         <div class="product-grid" id="productGrid">
-            <div class="state-msg">
-                <div class="spinner"></div>
-                <span>Cargando catálogo…</span>
+            <div class="product-card skeleton-card">
+                <div class="card-img skel-shimmer"></div>
+                <div class="card-body">
+                    <div class="skel-line skel-cat"></div>
+                    <div class="skel-line skel-name"></div>
+                    <div class="skel-line skel-desc"></div>
+                    <div class="skel-line skel-desc short"></div>
+                    <div class="skel-line skel-btn"></div>
+                </div>
+            </div>
+            <div class="product-card skeleton-card">
+                <div class="card-img skel-shimmer"></div>
+                <div class="card-body">
+                    <div class="skel-line skel-cat"></div>
+                    <div class="skel-line skel-name"></div>
+                    <div class="skel-line skel-desc"></div>
+                    <div class="skel-line skel-desc short"></div>
+                    <div class="skel-line skel-btn"></div>
+                </div>
+            </div>
+            <div class="product-card skeleton-card">
+                <div class="card-img skel-shimmer"></div>
+                <div class="card-body">
+                    <div class="skel-line skel-cat"></div>
+                    <div class="skel-line skel-name"></div>
+                    <div class="skel-line skel-desc"></div>
+                    <div class="skel-line skel-desc short"></div>
+                    <div class="skel-line skel-btn"></div>
+                </div>
+            </div>
+            <div class="product-card skeleton-card">
+                <div class="card-img skel-shimmer"></div>
+                <div class="card-body">
+                    <div class="skel-line skel-cat"></div>
+                    <div class="skel-line skel-name"></div>
+                    <div class="skel-line skel-desc"></div>
+                    <div class="skel-line skel-desc short"></div>
+                    <div class="skel-line skel-btn"></div>
+                </div>
+            </div>
+            <div class="product-card skeleton-card">
+                <div class="card-img skel-shimmer"></div>
+                <div class="card-body">
+                    <div class="skel-line skel-cat"></div>
+                    <div class="skel-line skel-name"></div>
+                    <div class="skel-line skel-desc"></div>
+                    <div class="skel-line skel-desc short"></div>
+                    <div class="skel-line skel-btn"></div>
+                </div>
+            </div>
+            <div class="product-card skeleton-card">
+                <div class="card-img skel-shimmer"></div>
+                <div class="card-body">
+                    <div class="skel-line skel-cat"></div>
+                    <div class="skel-line skel-name"></div>
+                    <div class="skel-line skel-desc"></div>
+                    <div class="skel-line skel-desc short"></div>
+                    <div class="skel-line skel-btn"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -2805,8 +2949,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9-4 9 4-9 4-9-4zm0 0v10l9 4 9-4V7M12 11v10"/>
                     </svg>
                 </div>
-                <div class="buyer-option-title">Mayorista</div>
-                <div class="buyer-option-desc">Compras por cantidad, precio por mayor</div>
+                <div class="buyer-option-text">
+                    <div class="buyer-option-title">Mayorista</div>
+                    <div class="buyer-option-desc">Compras por cantidad, precio por mayor</div>
+                </div>
             </button>
             <button type="button" class="buyer-option-card" id="buyerOptionMinorista" data-type="minorista">
                 <div class="buyer-option-icon">
@@ -2814,8 +2960,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 8h12l1 13H5L6 8zM9 8V6a3 3 0 116 0v2"/>
                     </svg>
                 </div>
-                <div class="buyer-option-title">Minorista</div>
-                <div class="buyer-option-desc">Compras de menor cantidad, precio por menor</div>
+                <div class="buyer-option-text">
+                    <div class="buyer-option-title">Minorista</div>
+                    <div class="buyer-option-desc">Compras de menor cantidad, precio por menor</div>
+                </div>
             </button>
         </div>
 
@@ -2864,13 +3012,13 @@
         <div class="order-form">
             <div class="order-form-row">
                 <label class="order-form-label" for="omBuyerName">Nombre y apellido <span class="req">*</span></label>
-                <input type="text" id="omBuyerName" class="order-form-input" placeholder="Ej: Juan Pérez" autocomplete="name" inputmode="text">
+                <input type="text" id="omBuyerName" class="order-form-input" placeholder="Ej: Lionel Messi" autocomplete="name" inputmode="text">
             </div>
 
             <div class="order-form-row order-form-row-split">
                 <div class="order-form-row">
                     <label class="order-form-label" for="omBuyerLocality">Localidad <span class="req">*</span></label>
-                    <input type="text" id="omBuyerLocality" class="order-form-input" placeholder="Ej: Resistencia" autocomplete="address-level2">
+                    <input type="text" id="omBuyerLocality" class="order-form-input" placeholder="Ej: Villa Ángela" autocomplete="address-level2">
                 </div>
                 <div class="order-form-row">
                     <label class="order-form-label" for="omBuyerProvince">Provincia <span class="req">*</span></label>
@@ -2880,7 +3028,7 @@
 
             <div class="order-form-row">
                 <label class="order-form-label" for="omBuyerPhone">Teléfono <span class="opt">(opcional, recomendado)</span></label>
-                <input type="tel" id="omBuyerPhone" class="order-form-input" placeholder="Ej: 3624 123456" autocomplete="tel" inputmode="tel">
+                <input type="tel" id="omBuyerPhone" class="order-form-input" placeholder="Ej: +54 9 (XXX) XXXXXXX" autocomplete="tel" inputmode="tel">
             </div>
 
             <div class="order-form-row">
@@ -2954,6 +3102,23 @@
         <p class="qr-modal-note">
             Al enviar el pedido, te contactará el equipo de Marchese Golosinas para coordinar pago y entrega.
         </p>
+    </div>
+</div>
+
+<!-- ── DIALOG DE CONFIRMACIÓN: ¿YA ENVIASTE TU PEDIDO? (al cerrar el QR) ── -->
+<div class="custom-dialog-overlay" id="qrConfirmDialogOverlay">
+    <div class="custom-dialog">
+        <div class="custom-dialog-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <div class="custom-dialog-title">¿Ya enviaste tu pedido?</div>
+        <div class="custom-dialog-msg">Si ya escaneaste el QR y lo enviaste por WhatsApp, vaciamos el pedido para que puedas armar uno nuevo. Si todavía no lo enviaste, volvé a escanear el código.</div>
+        <div class="custom-dialog-actions">
+            <button class="custom-dialog-btn cancel" id="qrConfirmCancel">Todavía no</button>
+            <button class="custom-dialog-btn confirm" id="qrConfirmSend">Sí, ya lo envié</button>
+        </div>
     </div>
 </div>
 
