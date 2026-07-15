@@ -64,10 +64,13 @@ const categoryContainer = document.getElementById("categoryContainer");
 const brandsContainer = document.getElementById("brandsContainer");
 const searchInput = document.getElementById("searchInput");
 
-const filterCatSelectBtn = document.getElementById("filterCatSelectBtn");
-const filterCatSelectValue = document.getElementById("filterCatSelectValue");
-const filterBrandSelectBtn = document.getElementById("filterBrandSelectBtn");
-const filterBrandSelectValue = document.getElementById("filterBrandSelectValue");
+// Botones que abren la hoja/dropdown de filtros: hay un set en la tira
+// mobile y otro junto al buscador en desktop, ambos operan sobre el mismo
+// estado y comparten el mismo componente filterSheet.
+const filterCatSelectBtns = document.querySelectorAll('[data-filter-trigger="cat"]');
+const filterCatSelectValues = document.querySelectorAll('[data-filter-value="cat"]');
+const filterBrandSelectBtns = document.querySelectorAll('[data-filter-trigger="brand"]');
+const filterBrandSelectValues = document.querySelectorAll('[data-filter-value="brand"]');
 
 const filterSheetOverlay = document.getElementById("filterSheetOverlay");
 const filterSheet = document.getElementById("filterSheet");
@@ -443,7 +446,7 @@ function skeletonCardHtml() {
     </div>`;
 }
 
-function renderProductSkeletons(count = 6) {
+function renderProductSkeletons(count = 8) {
   productGrid.innerHTML = Array.from({ length: count }).map(skeletonCardHtml).join("");
 }
 
@@ -613,19 +616,22 @@ function normalizeForSearch(str = "") {
 
 /** Actualiza el texto y el estado "activo" de los dos botones selectores. */
 function updateFilterSelectLabels() {
-  if (!filterCatSelectBtn) return;
+  if (!filterCatSelectBtns.length) return;
 
-  filterCatSelectValue.textContent = activeCategory;
-  filterCatSelectBtn.classList.toggle("has-active", activeCategory !== "Todos");
+  filterCatSelectValues.forEach((el) => (el.textContent = activeCategory));
+  filterCatSelectBtns.forEach((btn) =>
+    btn.classList.toggle("has-active", activeCategory !== "Todos")
+  );
 
   const brandCount = activeBrands.size;
-  filterBrandSelectValue.textContent =
+  const brandLabel =
     brandCount === 0
       ? "Todas"
       : brandCount === 1
       ? Array.from(activeBrands)[0]
       : `${brandCount} marcas`;
-  filterBrandSelectBtn.classList.toggle("has-active", brandCount > 0);
+  filterBrandSelectValues.forEach((el) => (el.textContent = brandLabel));
+  filterBrandSelectBtns.forEach((btn) => btn.classList.toggle("has-active", brandCount > 0));
 }
 
 /** Actualiza el botón "Ver N productos" según el filtrado actual. */
@@ -707,7 +713,25 @@ function renderFilterSheetBody(search = "") {
   }
 }
 
-function openFilterSheet(type) {
+// Breakpoint que separa la tira mobile (hoja inferior) del dropdown de escritorio.
+const FILTER_DESKTOP_BREAKPOINT = 961;
+function isDesktopFilterLayout() {
+  return window.innerWidth >= FILTER_DESKTOP_BREAKPOINT;
+}
+
+/** Posiciona la hoja como dropdown anclado debajo del botón que la abrió (solo desktop). */
+function positionFilterSheetAsDropdown(triggerBtn) {
+  const rect = triggerBtn.getBoundingClientRect();
+  const sheetWidth = 300;
+  let left = rect.left;
+  // Evita que el dropdown se salga por el borde derecho de la ventana.
+  left = Math.min(left, window.innerWidth - sheetWidth - 12);
+  left = Math.max(left, 12);
+  filterSheet.style.top = `${rect.bottom + 8}px`;
+  filterSheet.style.left = `${left}px`;
+}
+
+function openFilterSheet(type, triggerBtn) {
   filterSheetType = type;
   filterSheetTitle.textContent = type === "cat" ? "Categoría" : "Marca";
   filterSheetSearch.value = "";
@@ -716,23 +740,42 @@ function openFilterSheet(type) {
   renderFilterSheetBody();
   updateFilterSheetApplyLabel();
 
+  const desktop = isDesktopFilterLayout() && triggerBtn;
+  filterSheet.classList.toggle("dropdown", desktop);
+  filterSheetOverlay.classList.toggle("dropdown", desktop);
+  if (desktop) {
+    positionFilterSheetAsDropdown(triggerBtn);
+  } else {
+    filterSheet.style.top = "";
+    filterSheet.style.left = "";
+  }
+
   filterSheetOverlay.classList.add("open");
   filterSheet.classList.add("open");
-  filterCatSelectBtn.classList.toggle("open", type === "cat");
-  filterCatSelectBtn.setAttribute("aria-expanded", type === "cat" ? "true" : "false");
-  filterBrandSelectBtn.classList.toggle("open", type === "brand");
-  filterBrandSelectBtn.setAttribute("aria-expanded", type === "brand" ? "true" : "false");
-  lockBodyScroll();
+  filterCatSelectBtns.forEach((btn) => {
+    btn.classList.toggle("open", type === "cat");
+    btn.setAttribute("aria-expanded", type === "cat" ? "true" : "false");
+  });
+  filterBrandSelectBtns.forEach((btn) => {
+    btn.classList.toggle("open", type === "brand");
+    btn.setAttribute("aria-expanded", type === "brand" ? "true" : "false");
+  });
+  // En desktop el dropdown flota junto al botón: no bloqueamos el scroll de fondo.
+  if (!desktop) lockBodyScroll();
 }
 
 function closeFilterSheet() {
   if (!filterSheet.classList.contains("open")) return;
   filterSheetOverlay.classList.remove("open");
   filterSheet.classList.remove("open");
-  filterCatSelectBtn.classList.remove("open");
-  filterCatSelectBtn.setAttribute("aria-expanded", "false");
-  filterBrandSelectBtn.classList.remove("open");
-  filterBrandSelectBtn.setAttribute("aria-expanded", "false");
+  filterCatSelectBtns.forEach((btn) => {
+    btn.classList.remove("open");
+    btn.setAttribute("aria-expanded", "false");
+  });
+  filterBrandSelectBtns.forEach((btn) => {
+    btn.classList.remove("open");
+    btn.setAttribute("aria-expanded", "false");
+  });
   unlockBodyScroll();
 }
 
@@ -741,22 +784,26 @@ function isFilterSheetOpen() {
 }
 
 function setupFilterSheetListeners() {
-  if (!filterCatSelectBtn) return; // no estamos en una página con filtros mobile
+  if (!filterCatSelectBtns.length) return; // no estamos en una página con filtros
 
-  filterCatSelectBtn.addEventListener("click", () => {
-    if (filterSheetType === "cat" && isFilterSheetOpen()) {
-      closeFilterSheet();
-      return;
-    }
-    openFilterSheet("cat");
+  filterCatSelectBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (filterSheetType === "cat" && isFilterSheetOpen()) {
+        closeFilterSheet();
+        return;
+      }
+      openFilterSheet("cat", btn);
+    });
   });
 
-  filterBrandSelectBtn.addEventListener("click", () => {
-    if (filterSheetType === "brand" && isFilterSheetOpen()) {
-      closeFilterSheet();
-      return;
-    }
-    openFilterSheet("brand");
+  filterBrandSelectBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (filterSheetType === "brand" && isFilterSheetOpen()) {
+        closeFilterSheet();
+        return;
+      }
+      openFilterSheet("brand", btn);
+    });
   });
 
   filterSheetCloseBtn.addEventListener("click", closeFilterSheet);
@@ -779,7 +826,6 @@ function setupFilterSheetListeners() {
       renderProducts();
       updateFilterSheetApplyLabel();
       closeFilterSheet(); // selección única: aplica y cierra
-      scrollToCatalog();
     } else if (filterSheetType === "brand") {
       const allBtn = e.target.closest(".filter-option-check[data-brand-all]");
       if (allBtn) {
@@ -798,7 +844,6 @@ function setupFilterSheetListeners() {
       renderProducts();
       renderFilterSheetBody(filterSheetSearch.value);
       updateFilterSheetApplyLabel();
-      scrollToCatalog();
       // multi-selección: la hoja queda abierta para elegir varias marcas
     }
   });
@@ -814,10 +859,34 @@ function setupFilterSheetListeners() {
     renderProducts();
     renderFilterSheetBody(filterSheetSearch.value);
     updateFilterSheetApplyLabel();
-    scrollToCatalog();
   });
 
   filterSheetApplyBtn.addEventListener("click", closeFilterSheet);
+
+  // Evita un dropdown mal posicionado si se redimensiona la ventana
+  // (p. ej. rotar el celular, o cruzar el breakpoint mobile/desktop).
+  window.addEventListener("resize", debounce(closeFilterSheet, 150));
+
+  // En desktop el dropdown está anclado (position: fixed) a la posición del
+  // botón en el momento de abrirse. Si el usuario scrollea la página, el
+  // botón se mueve pero el panel queda flotando en el mismo lugar de la
+  // pantalla, dando la sensación de que "lo sigue" a todos lados. Para
+  // evitarlo, lo cerramos apenas se detecta scroll de la página.
+  // (En mobile no aplica: el fondo queda bloqueado con lockBodyScroll mientras la hoja está abierta).
+  window.addEventListener(
+    "scroll",
+    (e) => {
+      // Solo nos interesa el scroll de la página (target === document).
+      // El scroll interno del panel (filterSheetBody, con su propio overflow)
+      // dispara su propio evento "scroll" con target distinto de document,
+      // y no debe cerrar el panel.
+      if (e.target !== document) return;
+      if (isFilterSheetOpen() && filterSheet.classList.contains("dropdown")) {
+        closeFilterSheet();
+      }
+    },
+    { passive: true, capture: true }
+  );
 }
 
 // ──────────────────────────────────────────────────────────
@@ -980,7 +1049,7 @@ function productCardHtml(product) {
         ${inner}
       </div>
       <div class="card-body">
-        <p class="card-cat">${escapeHtml(product.category || "")}</p>
+        <p class="card-cat"><span class="card-cat-text">${escapeHtml(product.category || "")}</span>${product.brand ? ` <span class="card-cat-brand">· ${escapeHtml(product.brand)}</span>` : ""}</p>
         <h3 class="card-name"${nameDataAttr}>${escapeHtml(product.name || "")}</h3>
         <p class="card-desc">${escapeHtml(product.description || "")}</p>
         ${actionBtn}
