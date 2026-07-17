@@ -331,6 +331,20 @@ function sortByOrderThenName(a, b) {
   return (a.name || "").localeCompare(b.name || "", "es");
 }
 
+// Orden alfabético (a-z) por nombre, ignorando el campo "order".
+// Se usa para los paneles de categorías y marcas.
+function sortByNameAlpha(a, b) {
+  return (a.name || "").localeCompare(b.name || "", "es");
+}
+
+// Orden de productos: primero alfabético por categoría, y dentro de
+// cada categoría se respeta el orden configurado (order/nombre).
+function sortByCategoryThenOrder(a, b) {
+  const catCompare = (a.category || "").localeCompare(b.category || "", "es");
+  if (catCompare !== 0) return catCompare;
+  return sortByOrderThenName(a, b);
+}
+
 function initFirestoreListeners() {
   // Productos
   onSnapshot(
@@ -364,7 +378,7 @@ function initFirestoreListeners() {
       allCategories = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((c) => c.active !== false)
-        .sort(sortByOrderThenName);
+        .sort(sortByNameAlpha);
       categoriesLoaded = true;
       renderCategories();
     },
@@ -378,7 +392,7 @@ function initFirestoreListeners() {
       allBrands = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((b) => b.active !== false)
-        .sort(sortByOrderThenName);
+        .sort(sortByNameAlpha);
       brandsLoaded = true;
       renderBrands();
     },
@@ -923,14 +937,18 @@ function getFilteredProducts() {
     return true;
   });
 
+  // Ordenamos alfabéticamente por categoría (y dentro de cada categoría
+  // respetamos el orden configurado order/nombre), tanto si no hay
+  // filtro activo como si se filtra por marca o categoría.
+  const sorted = [...filtered].sort(sortByCategoryThenOrder);
+
   // Los productos agotados (active === false) siempre van al final.
-  // Como "filtered" ya respeta el orden de allProducts (order/nombre),
-  // separar y concatenar preserva ese orden dentro de cada grupo:
-  // los disponibles arriba en su posición normal, los agotados abajo.
-  // Si un producto se marca disponible de nuevo desde el admin, vuelve
-  // automáticamente a su lugar entre los disponibles.
-  const available = filtered.filter((p) => p.active !== false);
-  const soldOut = filtered.filter((p) => p.active === false);
+  // Al separar y concatenar preservamos el orden alfabético por
+  // categoría dentro de cada grupo: los disponibles arriba, los
+  // agotados abajo. Si un producto se marca disponible de nuevo desde
+  // el admin, vuelve automáticamente a su lugar entre los disponibles.
+  const available = sorted.filter((p) => p.active !== false);
+  const soldOut = sorted.filter((p) => p.active === false);
   return [...available, ...soldOut];
 }
 
