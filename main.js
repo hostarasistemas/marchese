@@ -515,13 +515,29 @@ function renderProductSkeletons(count = 8) {
 // ──────────────────────────────────────────────────────────
 
 function getCategoryList() {
+  // Si hay marcas activas, solo devolvemos las categorías en las que esas
+  // marcas realmente tienen productos cargados — es el filtro recíproco
+  // de getBrandList(): elegís una marca y en categorías ves solo lo que
+  // esa marca vende.
+  const categoriesForActiveBrands =
+    activeBrands.size > 0
+      ? new Set(
+          allProducts
+            .filter((p) => p.brand && activeBrands.has(p.brand) && p.category)
+            .map((p) => p.category)
+        )
+      : null;
+
+  const restrictToBrands = (names) =>
+    categoriesForActiveBrands ? names.filter((name) => categoriesForActiveBrands.has(name)) : names;
+
   if (allCategories.length > 0) {
-    return allCategories.map((c) => c.name).filter(Boolean);
+    return restrictToBrands(allCategories.map((c) => c.name).filter(Boolean));
   }
   // Si no hay colección "categories" todavía, las derivamos de los productos ACTIVOS
   const set = new Set();
   allProducts.filter((p) => p.active !== false).forEach((p) => p.category && set.add(p.category));
-  return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  return restrictToBrands(Array.from(set).sort((a, b) => a.localeCompare(b, "es")));
 }
 
 const CAT_VISIBLE_LIMIT = 6;
@@ -578,6 +594,7 @@ function renderCategories() {
   if (activeCategory !== "Todos" && !categories.includes(activeCategory)) {
     activeCategory = "Todos";
     renderCategories();
+    renderBrands();
     renderProducts();
   }
 }
@@ -587,12 +604,28 @@ function renderCategories() {
 // ──────────────────────────────────────────────────────────
 
 function getBrandList() {
+  // Si hay una categoría activa (distinta de "Todos"), solo devolvemos las
+  // marcas que tienen al menos un producto cargado en esa categoría. Así,
+  // al elegir por ejemplo "Alfajores", el listado de marcas se reduce
+  // automáticamente a las marcas que realmente venden alfajores.
+  const brandsInActiveCategory =
+    activeCategory !== "Todos"
+      ? new Set(
+          allProducts
+            .filter((p) => p.category === activeCategory && p.brand)
+            .map((p) => p.brand)
+        )
+      : null;
+
+  const restrictToCategory = (names) =>
+    brandsInActiveCategory ? names.filter((name) => brandsInActiveCategory.has(name)) : names;
+
   if (allBrands.length > 0) {
-    return allBrands.map((b) => b.name).filter(Boolean);
+    return restrictToCategory(allBrands.map((b) => b.name).filter(Boolean));
   }
   const set = new Set();
   allProducts.forEach((p) => p.brand && set.add(p.brand));
-  return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  return restrictToCategory(Array.from(set).sort((a, b) => a.localeCompare(b, "es")));
 }
 
 function renderBrands() {
@@ -606,7 +639,10 @@ function renderBrands() {
 
   // ── Sidebar desktop ──────────────────────────────────────
   if (brands.length === 0) {
-    brandsContainer.innerHTML = `<p style="font-size:0.8rem;color:var(--muted)">Sin marcas cargadas</p>`;
+    const emptyMsg = activeCategory !== "Todos"
+      ? `Sin marcas en "${escapeHtml(activeCategory)}"`
+      : "Sin marcas cargadas";
+    brandsContainer.innerHTML = `<p style="font-size:0.8rem;color:var(--muted)">${emptyMsg}</p>`;
   } else {
     const needsToggle = brands.length > BRAND_VISIBLE_LIMIT;
 
@@ -866,6 +902,7 @@ function setupFilterSheetListeners() {
       if (!btn) return;
       activeCategory = btn.dataset.cat;
       renderCategories();
+      renderBrands(); // la lista de marcas depende de la categoría elegida
       renderProducts();
       updateFilterSheetApplyLabel();
       closeFilterSheet(); // selección única: aplica y cierra
@@ -884,6 +921,7 @@ function setupFilterSheetListeners() {
         }
       }
       renderBrands();
+      renderCategories(); // la lista de categorías depende de las marcas elegidas
       renderProducts();
       renderFilterSheetBody(filterSheetSearch.value);
       updateFilterSheetApplyLabel();
@@ -895,9 +933,11 @@ function setupFilterSheetListeners() {
     if (filterSheetType === "cat") {
       activeCategory = "Todos";
       renderCategories();
+      renderBrands(); // "Todos" vuelve a mostrar todas las marcas
     } else if (filterSheetType === "brand") {
       activeBrands.clear();
       renderBrands();
+      renderCategories(); // sin marcas activas, vuelven a verse todas las categorías
     }
     renderProducts();
     renderFilterSheetBody(filterSheetSearch.value);
@@ -2145,6 +2185,7 @@ function setupEventListeners() {
     if (!btn) return;
     activeCategory = btn.dataset.cat;
     renderCategories();
+    renderBrands(); // la lista de marcas depende de la categoría elegida
     renderProducts();
     scrollToCatalog();
   });
@@ -2159,6 +2200,7 @@ function setupEventListeners() {
     } else {
       activeBrands.delete(brand);
     }
+    renderCategories(); // la lista de categorías depende de las marcas elegidas
     renderProducts();
     scrollToCatalog();
   });
