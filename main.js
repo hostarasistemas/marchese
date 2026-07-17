@@ -63,6 +63,7 @@ const productGrid = document.getElementById("productGrid");
 const categoryContainer = document.getElementById("categoryContainer");
 const brandsContainer = document.getElementById("brandsContainer");
 const searchInput = document.getElementById("searchInput");
+const searchClearBtn = document.getElementById("searchClearBtn");
 
 // Botones que abren la hoja/dropdown de filtros: hay un set en la tira
 // mobile y otro junto al buscador en desktop, ambos operan sobre el mismo
@@ -136,6 +137,12 @@ const buyerModalCloseBtn = document.getElementById("buyerModalCloseBtn");
 const buyerOptionMayorista = document.getElementById("buyerOptionMayorista");
 const buyerOptionMinorista = document.getElementById("buyerOptionMinorista");
 
+const contactUsBtn = document.getElementById("contactUsBtn");
+const contactModalOverlay = document.getElementById("contactModalOverlay");
+const contactModalCloseBtn = document.getElementById("contactModalCloseBtn");
+const contactWaBtn = document.getElementById("contactWaBtn");
+const contactWaNumber = document.getElementById("contactWaNumber");
+
 const heroBuyerStatusText = document.getElementById("heroBuyerStatusText");
 const heroBuyerChangeBtn = document.getElementById("heroBuyerChangeBtn");
 
@@ -167,9 +174,11 @@ let buyerType = null;
 // Tipo de hoja de filtros mobile abierta actualmente: "cat" | "brand" | null
 let filterSheetType = null;
 
-// Paginación progresiva de productos
+// Paginación progresiva de productos (scroll infinito)
 const PRODUCTS_PER_PAGE = 12;
 let productsVisible = PRODUCTS_PER_PAGE;
+let isLoadingMoreProducts = false; // evita disparos duplicados del observer
+let infiniteScrollObserver = null;
 
 // ──────────────────────────────────────────────────────────
 // UTILIDADES
@@ -182,6 +191,43 @@ function escapeHtml(str = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// Normaliza texto para comparaciones de búsqueda: pasa a minúsculas y
+// quita acentos/tildes, para que buscar "cafe" encuentre "café", "océano"
+// encuentre "oceano", etc.
+function normalizeText(str = "") {
+  return String(str)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+// Genera variantes singular/plural aproximadas de una palabra en español,
+// para que buscar "chocolate" encuentre productos que dicen "chocolates"
+// (y viceversa), "caramelo" encuentre "caramelos", "limon" encuentre
+// "limones", etc. No es un stemmer perfecto, pero cubre los casos típicos
+// de un catálogo de golosinas.
+function wordVariants(word) {
+  const variants = new Set([word]);
+  if (word.length > 3) {
+    if (word.endsWith("es")) {
+      variants.add(word.slice(0, -2)); // "limones" -> "limon"
+      variants.add(word.slice(0, -1)); // "dulces" -> "dulce"
+    } else if (word.endsWith("s")) {
+      variants.add(word.slice(0, -1)); // "chocolates" -> "chocolate"
+    } else {
+      variants.add(word + "s");        // "chocolate" -> "chocolates"
+      variants.add(word + "es");       // "limon" -> "limones"
+    }
+  }
+  return variants;
+}
+
+// Muestra u oculta el botón "X" del buscador según si hay texto escrito.
+function updateSearchClearBtn() {
+  if (!searchClearBtn) return;
+  searchClearBtn.classList.toggle("visible", searchInput.value.length > 0);
 }
 
 function debounce(fn, delay = 250) {
@@ -493,13 +539,6 @@ function renderCategories() {
 
   const categories = getCategoryList();
 
-  // Solo contar productos activos (los agotados siguen en allProducts pero no se cuentan)
-  const activeProducts = allProducts.filter((p) => p.active !== false);
-  const countFor = (catName) =>
-    catName === "Todos"
-      ? activeProducts.length
-      : activeProducts.filter((p) => p.category === catName).length;
-
   const buttons = [{ name: "Todos" }, ...categories.map((name) => ({ name }))];
   const needsToggle = buttons.length > CAT_VISIBLE_LIMIT;
 
@@ -511,7 +550,6 @@ function renderCategories() {
       return `
         <button class="cat-btn${isActive ? " active" : ""}${hiddenClass}" data-cat="${escapeHtml(c.name)}">
           <span>${escapeHtml(c.name)}</span>
-          <span class="cat-count">${countFor(c.name)}</span>
         </button>`;
     })
     .join("") + (needsToggle ? `
@@ -662,12 +700,6 @@ function renderFilterSheetBody(search = "") {
 
   if (filterSheetType === "cat") {
     const categories = getCategoryList();
-    const activeProds = allProducts.filter((p) => p.active !== false);
-    const countFor = (catName) =>
-      catName === "Todos"
-        ? activeProds.length
-        : activeProds.filter((p) => p.category === catName).length;
-
     const all = [{ name: "Todos" }, ...categories.map((name) => ({ name }))];
     const filtered = q
       ? all.filter((c) => normalizeForSearch(c.name).includes(q))
@@ -680,14 +712,12 @@ function renderFilterSheetBody(search = "") {
             return `
               <button class="filter-option${isActive ? " active" : ""}" data-cat="${escapeHtml(c.name)}">
                 <span>${escapeHtml(c.name)}</span>
-                <span class="filter-option-count">${countFor(c.name)}</span>
               </button>`;
           })
           .join("")
       : `<div class="filter-sheet-empty">No encontramos categorías para "${escapeHtml(search)}"</div>`;
   } else if (filterSheetType === "brand") {
     const brands = getBrandList();
-    const countFor = (name) => allProducts.filter((p) => p.active !== false && p.brand === name).length;
     const filtered = q
       ? brands.filter((name) => normalizeForSearch(name).includes(q))
       : brands;
@@ -715,7 +745,6 @@ function renderFilterSheetBody(search = "") {
               </svg>
             </span>
             <span class="filter-option-check-name">${escapeHtml(name)}</span>
-            <span class="filter-option-count">${countFor(name)}</span>
           </button>`;
       })
       .join("");
@@ -931,8 +960,22 @@ function getFilteredProducts() {
       if (!hasTag) return false;
     }
     if (searchTerm) {
-      const haystack = `${p.name || ""} ${p.description || ""}`.toLowerCase();
-      if (!haystack.includes(searchTerm)) return false;
+      // El "haystack" ahora incluye nombre, descripción, categoría, marca
+      // y tags, así buscar "chocolates" también encuentra productos cuya
+      // categoría es "Chocolates" aunque esa palabra no esté en el nombre.
+      const tagsText = Array.isArray(p.tags) ? p.tags.join(" ") : (p.tag || "");
+      const haystack = normalizeText(
+        `${p.name || ""} ${p.description || ""} ${p.category || ""} ${p.brand || ""} ${tagsText}`
+      );
+
+      // Se exige que TODAS las palabras escritas por el usuario matcheen
+      // (en alguna de sus variantes singular/plural) en algún lugar del
+      // haystack. Así "caramelos menta" encuentra "Caramelo de Menta".
+      const tokens = normalizeText(searchTerm).split(/\s+/).filter(Boolean);
+      const matchesAll = tokens.every((token) =>
+        [...wordVariants(token)].some((variant) => haystack.includes(variant))
+      );
+      if (!matchesAll) return false;
     }
     return true;
   });
@@ -1111,27 +1154,60 @@ function renderProducts(resetPagination = true) {
 
   const cardsHtml = visible.map(productCardHtml).join("");
 
-  const loadMoreHtml = remaining > 0
-    ? `<div class="load-more-wrap" id="loadMoreWrap">
-        <button type="button" class="btn-load-more" id="loadMoreBtn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-          </svg>
-          Ver más productos
-        </button>
-      </div>`
+  const endMsgHtml = remaining <= 0 && filtered.length > PRODUCTS_PER_PAGE
+    ? `<div class="end-of-catalog">Ya viste todos nuestros productos</div>`
     : "";
 
-  productGrid.innerHTML = cardsHtml + loadMoreHtml;
+  productGrid.innerHTML = cardsHtml + endMsgHtml;
+  isLoadingMoreProducts = false;
 
-  // Listener del botón "Ver más"
-  const loadMoreBtn = document.getElementById("loadMoreBtn");
-  if (loadMoreBtn) {
-    loadMoreBtn.addEventListener("click", () => {
-      productsVisible += PRODUCTS_PER_PAGE;
-      renderProducts(false);
-    });
+  // El sentinel vive fuera de productGrid (no se borra en el re-render).
+  // Lo activamos/desactivamos según si quedan más productos por cargar.
+  setupInfiniteScroll(remaining > 0);
+}
+
+// ──────────────────────────────────────────────────────────
+// SCROLL INFINITO: observa el sentinel y va agregando productos
+// con un pequeño efecto skeleton a medida que el usuario baja.
+// ──────────────────────────────────────────────────────────
+function setupInfiniteScroll(hasMore) {
+  const sentinel = document.getElementById("infiniteScrollSentinel");
+  if (!sentinel) return;
+
+  if (!infiniteScrollObserver) {
+    infiniteScrollObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) loadMoreProducts();
+        });
+      },
+      { root: null, rootMargin: "600px 0px", threshold: 0 }
+    );
   }
+
+  infiniteScrollObserver.unobserve(sentinel);
+  if (hasMore) infiniteScrollObserver.observe(sentinel);
+}
+
+function loadMoreProducts() {
+  if (isLoadingMoreProducts) return;
+  const filtered = getFilteredProducts();
+  const remaining = filtered.length - productsVisible;
+  if (remaining <= 0) return;
+
+  isLoadingMoreProducts = true;
+
+  // Mostramos skeletons de la próxima tanda mientras "carga" (son productos
+  // que ya están en memoria, así que esto es solo un efecto visual breve
+  // para que la transición se sienta natural y no un salto brusco de golpe).
+  const nextBatchSize = Math.min(PRODUCTS_PER_PAGE, remaining);
+  const skeletonsHtml = Array.from({ length: nextBatchSize }).map(skeletonCardHtml).join("");
+  productGrid.insertAdjacentHTML("beforeend", skeletonsHtml);
+
+  setTimeout(() => {
+    productsVisible += PRODUCTS_PER_PAGE;
+    renderProducts(false);
+  }, 350);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1636,6 +1712,67 @@ function setupBuyerTypeListeners() {
 }
 
 // ──────────────────────────────────────────────────────────
+// MODAL CONTACTANOS
+// ──────────────────────────────────────────────────────────
+// Reemplaza el viejo botón "Contactanos" que hacía scroll al footer:
+// con el scroll infinito de productos, el footer se sigue corriendo
+// hacia abajo mientras el usuario baja, así que la navegación por ancla
+// ya no llega bien. En su lugar abrimos un modal con los datos de
+// contacto (ubicación, WhatsApp e Instagram) accesible desde cualquier
+// parte de la página.
+
+// Formatea el número guardado (ej: "5493735627215") en un formato
+// legible tipo "+54 9 3735 62-7215". Si el formato no matchea, se
+// muestra el número tal cual viene.
+function formatWhatsappDisplay(number) {
+  const digits = String(number || "").replace(/\D/g, "");
+  const match = digits.match(/^54(9)?(\d{2,4})(\d{6,8})$/);
+  if (!match) return number;
+  const [, nine, area, line] = match;
+  const lineFormatted = line.length === 8 ? `${line.slice(0, 2)}-${line.slice(2)}` : line;
+  return `+54 ${nine ? "9 " : ""}${area} ${lineFormatted}`;
+}
+
+async function openContactModal() {
+  if (!contactModalOverlay) return;
+  contactModalOverlay.classList.add("open");
+  lockBodyScroll();
+
+  // Traemos el número más actualizado desde Firestore recién al abrir
+  // el modal (igual que hace el botón flotante de WhatsApp).
+  if (contactWaBtn) {
+    const number = await fetchWhatsappNumber();
+    const message = "¡Hola! Quería hacer una consulta sobre los productos de Marchese Golosinas 😊";
+    contactWaBtn.href = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    if (contactWaNumber) contactWaNumber.textContent = formatWhatsappDisplay(number);
+  }
+}
+
+function closeContactModal() {
+  if (!contactModalOverlay) return;
+  contactModalOverlay.classList.remove("open");
+  unlockBodyScroll();
+}
+
+function isContactModalOpen() {
+  return !!(contactModalOverlay && contactModalOverlay.classList.contains("open"));
+}
+
+function setupContactModalListeners() {
+  if (!contactModalOverlay) return;
+
+  if (contactUsBtn) {
+    contactUsBtn.addEventListener("click", openContactModal);
+  }
+  if (contactModalCloseBtn) {
+    contactModalCloseBtn.addEventListener("click", closeContactModal);
+  }
+  contactModalOverlay.addEventListener("click", (e) => {
+    if (e.target === contactModalOverlay) closeContactModal();
+  });
+}
+
+// ──────────────────────────────────────────────────────────
 // DATOS DEL COMPRADOR (nombre, localidad, provincia, tel, obs)
 // ──────────────────────────────────────────────────────────
 
@@ -1966,13 +2103,28 @@ async function handleContactSubmit() {
 
 function setupEventListeners() {
   // Buscador
-  searchInput.addEventListener(
-    "input",
-    debounce((e) => {
-      searchTerm = e.target.value.trim().toLowerCase();
+  const applySearch = debounce((value) => {
+    searchTerm = value.trim().toLowerCase();
+    renderProducts();
+  }, 200);
+
+  searchInput.addEventListener("input", (e) => {
+    // El botón "X" aparece/desaparece al instante (no va debounceado),
+    // así se siente responsivo aunque el filtrado tarde 200ms.
+    updateSearchClearBtn();
+    applySearch(e.target.value);
+  });
+
+  // Botón "X": borra el texto de un solo toque/click sin usar backspace.
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      searchTerm = "";
+      updateSearchClearBtn();
       renderProducts();
-    }, 200)
-  );
+      searchInput.focus();
+    });
+  }
 
   // Tag pills (filtro rápido por tag)
   if (tagPillsContainer) {
@@ -2150,6 +2302,10 @@ function setupEventListeners() {
         closeBuyerTypeModal();
         return;
       }
+      if (isContactModalOpen()) {
+        closeContactModal();
+        return;
+      }
       if (clearCartDialogOverlay.classList.contains("open")) {
         clearCartDialogOverlay.classList.remove("open");
         return;
@@ -2214,6 +2370,7 @@ function setupBrandCarouselClicks() {
     searchTerm = "";
     const searchEl = document.getElementById("searchInput");
     if (searchEl) searchEl.value = "";
+    updateSearchClearBtn();
 
     // Actualizar UI de filtros
     renderCategories();
@@ -2254,6 +2411,7 @@ function init() {
   setupFilterSheetListeners();
   setupEventListeners();
   setupBuyerTypeListeners();
+  setupContactModalListeners();
   setupOrderModalListeners();
   setupQrModalListeners();
   setupWaWebBtnListener();
