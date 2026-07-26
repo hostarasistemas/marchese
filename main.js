@@ -1282,8 +1282,35 @@ function modalContentHtml(product) {
   const tag = tagInner ? `<div class="card-tags">${tagInner}</div>` : "";
   const variants = getVariantGroup(product);
 
+  // Modalidades de venta habilitadas para este producto. Si el producto
+  // no tiene el campo (catálogo cargado antes de esta función), se
+  // asumen ambas disponibles para no restringir nada por default.
+  const saleModes = Array.isArray(product.saleModes) && product.saleModes.length > 0
+    ? product.saleModes
+    : ["unidad", "caja"];
+  const canUnidad = saleModes.includes("unidad");
+  const canCaja = saleModes.includes("caja");
+  // Tipo de unidad que se usa si no hay selector visible (una sola opción).
+  const defaultUnitType = canUnidad ? "unidad" : "caja";
+
+  // Selector "por unidad" / "por caja": solo para clientes mayoristas,
+  // y solo si el producto admite ambas modalidades.
+  const showUnitSelector = buyerType === "mayorista" && canUnidad && canCaja;
+  const unitSelectorHtml = showUnitSelector
+    ? `<div class="modal-unit-row" data-selected-unit="unidad">
+         <span class="modal-qty-label">Comprar por</span>
+         <div class="modal-unit-pills">
+           <button type="button" class="unit-pill active" data-unit="unidad">Unidad</button>
+           <button type="button" class="unit-pill" data-unit="caja">Caja</button>
+         </div>
+       </div>`
+    : (buyerType === "mayorista" && canCaja && !canUnidad
+        ? `<div class="modal-unit-note">Este producto se vende únicamente por caja</div>`
+        : "");
+
   // Siempre: stepper de cantidad + botón agregar
   const cartActionHtml = `
+    ${unitSelectorHtml}
     <div class="modal-qty-row">
       <span class="modal-qty-label">Cantidad</span>
       <div class="modal-qty-stepper">
@@ -1291,7 +1318,7 @@ function modalContentHtml(product) {
         <span class="modal-qty-val" id="modalQtyVal">1</span>
         <button type="button" class="modal-qty-btn modal-qty-inc" aria-label="Sumar">+</button>
       </div>
-      <button type="button" class="btn-cart-qty btn-add" data-id="${product.id}">
+      <button type="button" class="btn-cart-qty btn-add" data-id="${product.id}" data-unit-type="${defaultUnitType}">
         Agregar al pedido
       </button>
     </div>`;
@@ -1411,8 +1438,15 @@ function cartItemHtml(item) {
     : `<div class="card-img ${visual.bg}" style="width:100%;height:100%;">${visual.inner.replace(/width="72" height="72"/, 'width="28" height="28"')}</div>`;
 
   // Verificar si el producto sigue activo en el catálogo actual
-  const liveProduct = allProducts.find((p) => p.id === item.id);
+  // (item.productId es el id real del producto; item.id puede ser una
+  // clave compuesta como "id::caja" cuando la línea es "por caja")
+  const liveProduct = allProducts.find((p) => p.id === (item.productId || item.id));
   const isSoldOut = !liveProduct || liveProduct.active === false;
+  const unitBadge = buyerType === "mayorista"
+    ? (item.unitType === "caja"
+        ? `<span class="cart-item-unit">Por caja</span>`
+        : `<span class="cart-item-unit cart-item-unit-single">Por unidad</span>`)
+    : "";
 
   if (isSoldOut) {
     return `
@@ -1435,7 +1469,7 @@ function cartItemHtml(item) {
       <div class="cart-item-img">${imgHtml}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${escapeHtml(item.name)}</div>
-        <div class="cart-item-cat">${escapeHtml(item.category || "")}</div>
+        <div class="cart-item-cat">${escapeHtml(item.category || "")}${unitBadge}</div>
       </div>
       <div class="cart-item-qty">
         <button type="button" class="cart-qty-minus" data-id="${item.id}" aria-label="Restar">−</button>
@@ -1495,30 +1529,48 @@ function closeCart() {
 // CARRITO: ACCIONES
 // ──────────────────────────────────────────────────────────
 
-function handleAddToCart(productId, qty = 1) {
+function handleAddToCart(productId, qty = 1, unitType = "unidad") {
   const product = allProducts.find((p) => p.id === productId);
   if (!product) return;
   // Bloquear si el producto está agotado (inactivo)
   if (product.active === false) return;
-  addToCart(product, qty);
+  addToCart(product, qty, unitType);
   updateCartBadge();
   // Resetear stepper del modal a 1 sin re-renderizar todo el contenido
   const valEl = modalBody.querySelector("#modalQtyVal");
   if (valEl) valEl.textContent = "1";
-  const label = qty > 1 ? `${qty} unidades agregadas al pedido ✓` : "Agregado al pedido ✓";
+  // Resetear también el selector de unidad/caja a su valor por defecto
+  const unitRow = modalBody.querySelector(".modal-unit-row");
+  if (unitRow) {
+    unitRow.dataset.selectedUnit = "unidad";
+    unitRow.querySelectorAll(".unit-pill").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.unit === "unidad");
+    });
+  }
+  let label;
+  if (unitType === "caja") {
+    label = qty > 1 ? `${qty} cajas agregadas al pedido ✓` : "1 caja agregada al pedido ✓";
+  } else {
+    label = qty > 1 ? `${qty} unidades agregadas al pedido ✓` : "Agregado al pedido ✓";
+  }
   showToast(product.name, "ok", label);
 }
 
-function handleChangeQty(productId, delta, rerenderTarget) {
-  changeQty(productId, delta);
+function handleChangeQty(cartKey, delta, rerenderTarget) {
+  // La clave del carrito puede ser el id del producto (unidad) o
+  // "id::caja" (caja); guardamos el id real del producto antes de
+  // tocar el carrito, para poder re-renderizar el modal si aplica.
+  const productId = getCart()[cartKey]?.productId || cartKey;
+  changeQty(cartKey, delta);
   updateCartBadge();
   if (rerenderTarget === "cart") renderCart();
   if (rerenderTarget === "grid") renderProducts();
   if (isModalOpen()) renderModalProduct(productId);
 }
 
-function handleRemove(productId) {
-  removeFromCart(productId);
+function handleRemove(cartKey) {
+  const productId = getCart()[cartKey]?.productId || cartKey;
+  removeFromCart(cartKey);
   updateCartBadge();
   renderCart();
   renderProducts();
@@ -1713,6 +1765,78 @@ function selectBuyerType(type) {
   buyerModalOverlay.classList.remove("open");
   unlockBodyScroll();
   showToast(`Modo ${BUYER_TYPE_LABELS[type]} activado`, "success", "Lo vamos a tener en cuenta al recibir tu pedido");
+  // El carrito puede tener líneas "por caja", que en Minorista no
+  // se muestran; hay que refrescar el carrito y la grilla para que
+  // la vista quede consistente con el nuevo tipo de compra.
+  updateCartBadge();
+  if (isCartOpen()) renderCart();
+  renderProducts();
+}
+
+// Tipo de compra pendiente de confirmar (mientras está abierto el
+// diálogo de "el carrito se va a vaciar").
+let pendingBuyerType = null;
+
+const buyerChangeConfirmOverlay = document.getElementById("buyerChangeConfirmOverlay");
+const buyerChangeConfirmCancel = document.getElementById("buyerChangeConfirmCancel");
+const buyerChangeConfirmAccept = document.getElementById("buyerChangeConfirmAccept");
+
+function openBuyerChangeConfirmDialog(targetType) {
+  if (!buyerChangeConfirmOverlay) return;
+  const titleEl = document.getElementById("buyerChangeConfirmTitle");
+  const msgEl = document.getElementById("buyerChangeConfirmMsg");
+  if (targetType === "minorista") {
+    if (msgEl) {
+      msgEl.textContent = 'Minorista no tiene la opción "por caja". Si cambiás ahora, se van a quitar los productos que ya cargaste como Mayorista.';
+    }
+  } else {
+    if (msgEl) {
+      msgEl.textContent = "Al cambiar a Mayorista se van a quitar los productos que ya cargaste como Minorista, para que puedas armar el pedido de nuevo eligiendo unidad o caja.";
+    }
+  }
+  if (titleEl) titleEl.textContent = "El carrito se va a vaciar";
+  buyerChangeConfirmOverlay.classList.add("open");
+}
+
+function closeBuyerChangeConfirmDialog() {
+  if (buyerChangeConfirmOverlay) buyerChangeConfirmOverlay.classList.remove("open");
+  pendingBuyerType = null;
+}
+
+/**
+ * Se llama al elegir un tipo de compra desde el modal. Mayorista y
+ * Minorista manejan el carrito distinto (Minorista no tiene "por
+ * caja"), así que si el cliente ya tenía productos cargados y cambia
+ * de un tipo a otro, se le avisa que el carrito se va a vaciar.
+ */
+function handleBuyerTypeSelect(type) {
+  const hasItems = getTotalLines() > 0;
+  const isRealChange = buyerType && buyerType !== type;
+  if (isRealChange && hasItems) {
+    pendingBuyerType = type;
+    openBuyerChangeConfirmDialog(type);
+    return;
+  }
+  selectBuyerType(type);
+}
+
+function setupBuyerChangeConfirmListeners() {
+  if (!buyerChangeConfirmOverlay) return;
+  if (buyerChangeConfirmCancel) {
+    buyerChangeConfirmCancel.addEventListener("click", closeBuyerChangeConfirmDialog);
+  }
+  buyerChangeConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === buyerChangeConfirmOverlay) closeBuyerChangeConfirmDialog();
+  });
+  if (buyerChangeConfirmAccept) {
+    buyerChangeConfirmAccept.addEventListener("click", () => {
+      const type = pendingBuyerType;
+      closeBuyerChangeConfirmDialog();
+      if (!type) return;
+      clearCart();
+      selectBuyerType(type);
+    });
+  }
 }
 
 function closeMobileMenuForBuyerChange() {
@@ -1726,10 +1850,10 @@ function setupBuyerTypeListeners() {
   if (!buyerModalOverlay) return;
 
   if (buyerOptionMayorista) {
-    buyerOptionMayorista.addEventListener("click", () => selectBuyerType("mayorista"));
+    buyerOptionMayorista.addEventListener("click", () => handleBuyerTypeSelect("mayorista"));
   }
   if (buyerOptionMinorista) {
-    buyerOptionMinorista.addEventListener("click", () => selectBuyerType("minorista"));
+    buyerOptionMinorista.addEventListener("click", () => handleBuyerTypeSelect("minorista"));
   }
   if (buyerModalCloseBtn) {
     buyerModalCloseBtn.addEventListener("click", closeBuyerTypeModal);
@@ -1936,7 +2060,10 @@ function buildWhatsAppMessage(buyerInfo) {
   message += "\n*Productos:*\n";
 
   items.forEach((item) => {
-    message += `▪ ${item.qty}x ${item.name}`;
+    const unitSuffix = buyerType === "mayorista"
+      ? (item.unitType === "caja" ? " — Por caja" : " — Por unidad")
+      : "";
+    message += `▪ ${item.qty}x ${item.name}${unitSuffix}`;
     if (item.category) message += ` (${item.category})`;
     message += "\n";
   });
@@ -2019,7 +2146,7 @@ function sendOrderToWhatsApp() {
 function _checkSoldOutAndSend() {
   const cart = getCart();
   const soldOutItems = Object.values(cart).filter((item) => {
-    const live = allProducts.find((p) => p.id === item.id);
+    const live = allProducts.find((p) => p.id === (item.productId || item.id));
     return !live || live.active === false;
   });
 
@@ -2263,6 +2390,18 @@ function setupEventListeners() {
       renderModalProduct(variantBtn.dataset.id);
       return;
     }
+    // Selector "por unidad" / "por caja" (solo mayorista)
+    const unitBtn = e.target.closest(".unit-pill");
+    if (unitBtn) {
+      const row = unitBtn.closest(".modal-unit-row");
+      if (row) {
+        row.dataset.selectedUnit = unitBtn.dataset.unit;
+        row.querySelectorAll(".unit-pill").forEach((btn) => {
+          btn.classList.toggle("active", btn === unitBtn);
+        });
+      }
+      return;
+    }
     // Stepper +/−
     const incBtn = e.target.closest(".modal-qty-inc");
     if (incBtn) {
@@ -2281,7 +2420,11 @@ function setupEventListeners() {
     if (addBtn) {
       const valEl = modalBody.querySelector("#modalQtyVal");
       const qty = valEl ? Math.max(1, parseInt(valEl.textContent) || 1) : 1;
-      handleAddToCart(addBtn.dataset.id, qty);
+      const unitRow = modalBody.querySelector(".modal-unit-row");
+      const unitType = unitRow
+        ? (unitRow.dataset.selectedUnit || "unidad")
+        : (addBtn.dataset.unitType || "unidad");
+      handleAddToCart(addBtn.dataset.id, qty, unitType);
       return;
     }
   });
@@ -2453,6 +2596,7 @@ function init() {
   setupFilterSheetListeners();
   setupEventListeners();
   setupBuyerTypeListeners();
+  setupBuyerChangeConfirmListeners();
   setupContactModalListeners();
   setupOrderModalListeners();
   setupQrModalListeners();
