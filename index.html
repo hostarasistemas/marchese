@@ -1299,6 +1299,25 @@
         .modal-action { margin-top: auto; padding-top: 0.75rem; }
         .modal-action .btn-cart { margin-top: 0; }
 
+        /* Selector "por unidad" / "por caja" (solo Mayorista) */
+        .modal-unit-row {
+            display: flex; align-items: center; gap: 0.75rem;
+            margin-top: 0.5rem; flex-wrap: wrap;
+        }
+        .modal-unit-pills { display: flex; gap: 0.5rem; }
+        .unit-pill {
+            background: var(--surface); border: 1.5px solid var(--border); color: var(--text-mid);
+            font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 600;
+            padding: 0.4rem 0.85rem; border-radius: 99px; cursor: pointer; transition: all .15s;
+        }
+        .unit-pill:hover { border-color: var(--amber); color: var(--text); }
+        .unit-pill.active { background: var(--amber); border-color: var(--amber); color: white; }
+        .modal-unit-note {
+            font-size: 0.8rem; font-weight: 600; color: var(--amber);
+            background: var(--amber-light); border-radius: 8px;
+            padding: 0.5rem 0.75rem; margin-top: 0.5rem;
+        }
+
         /* Modal mobile: bottom sheet */
         @media (max-width: 768px) {
             .product-modal {
@@ -1832,7 +1851,7 @@
         ══════════════════════════════════════════════════ */
         .custom-dialog-overlay {
             position: fixed; inset: 0; background: rgba(20,18,15,0.55);
-            z-index: 200; display: flex; align-items: center; justify-content: center;
+            z-index: 300; display: flex; align-items: center; justify-content: center;
             opacity: 0; pointer-events: none;
             transition: opacity .2s;
         }
@@ -2227,6 +2246,11 @@
             white-space: nowrap;
         }
         .btn-cart-qty:hover { background: #cf7f08; }
+        .cart-item-unit {
+            display: inline-block; margin-left: 0.4rem;
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+            color: var(--amber);
+        }
 
         /* ── FILTROS MOBILE: barra selectora + hoja inferior ─ */
         .filter-select-bar {
@@ -3292,6 +3316,23 @@
         <div class="custom-dialog-actions">
             <button class="custom-dialog-btn cancel" id="clearCartCancel">Cancelar</button>
             <button class="custom-dialog-btn confirm" id="clearCartConfirm">Vaciar pedido</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── DIALOG CUSTOM (cambio de tipo de compra con carrito cargado) ── -->
+<div class="custom-dialog-overlay" id="buyerChangeConfirmOverlay">
+    <div class="custom-dialog">
+        <div class="custom-dialog-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </div>
+        <div class="custom-dialog-title" id="buyerChangeConfirmTitle">El carrito se va a vaciar</div>
+        <div class="custom-dialog-msg" id="buyerChangeConfirmMsg">Minorista no tiene la opción "por caja". Si cambiás ahora, se van a quitar los productos que ya cargaste como Mayorista.</div>
+        <div class="custom-dialog-actions">
+            <button class="custom-dialog-btn cancel" id="buyerChangeConfirmCancel">Cancelar</button>
+            <button class="custom-dialog-btn confirm" id="buyerChangeConfirmAccept">Sí, vaciar y cambiar</button>
         </div>
     </div>
 </div>
