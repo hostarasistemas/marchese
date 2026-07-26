@@ -1573,7 +1573,9 @@ function handleRemove(cartKey) {
   removeFromCart(cartKey);
   updateCartBadge();
   renderCart();
-  renderProducts();
+  // No hace falta renderProducts() acá: las cards del catálogo no
+  // muestran datos del carrito, así que re-renderizar todo el grid
+  // solo recreaba las imágenes y provocaba el flash de skeleton.
   if (isModalOpen()) renderModalProduct(productId);
 }
 
