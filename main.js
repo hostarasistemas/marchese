@@ -722,11 +722,10 @@ function updateFilterSelectLabels() {
   filterBrandSelectBtns.forEach((btn) => btn.classList.toggle("has-active", brandCount > 0));
 }
 
-/** Actualiza el botón "Ver N productos" según el filtrado actual. */
+/** Actualiza el botón "Ver productos" según el filtrado actual. */
 function updateFilterSheetApplyLabel() {
   if (!filterSheetApplyBtn) return;
-  const n = getFilteredProducts().length;
-  filterSheetApplyBtn.textContent = `Ver ${n} producto${n === 1 ? "" : "s"}`;
+  filterSheetApplyBtn.textContent = "Ver productos";
 }
 
 /** Dibuja el contenido de la hoja (categorías o marcas) según filterSheetType. */
@@ -1297,11 +1296,11 @@ function modalContentHtml(product) {
   // y solo si el producto admite ambas modalidades.
   const showUnitSelector = buyerType === "mayorista" && canUnidad && canCaja;
   const unitSelectorHtml = showUnitSelector
-    ? `<div class="modal-unit-row" data-selected-unit="unidad">
+    ? `<div class="modal-unit-row" data-selected-unit="caja">
          <span class="modal-qty-label">Comprar por</span>
          <div class="modal-unit-pills">
-           <button type="button" class="unit-pill active" data-unit="unidad">Unidad</button>
-           <button type="button" class="unit-pill" data-unit="caja">Caja</button>
+           <button type="button" class="unit-pill active" data-unit="caja">Caja</button>
+           <button type="button" class="unit-pill" data-unit="unidad">Unidad</button>
          </div>
        </div>`
     : (buyerType === "mayorista" && canCaja && !canUnidad
@@ -1542,9 +1541,9 @@ function handleAddToCart(productId, qty = 1, unitType = "unidad") {
   // Resetear también el selector de unidad/caja a su valor por defecto
   const unitRow = modalBody.querySelector(".modal-unit-row");
   if (unitRow) {
-    unitRow.dataset.selectedUnit = "unidad";
+    unitRow.dataset.selectedUnit = "caja";
     unitRow.querySelectorAll(".unit-pill").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.unit === "unidad");
+      btn.classList.toggle("active", btn.dataset.unit === "caja");
     });
   }
   let label;
