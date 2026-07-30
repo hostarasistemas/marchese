@@ -809,6 +809,26 @@ function positionFilterSheetAsDropdown(triggerBtn) {
   filterSheet.style.left = `${left}px`;
 }
 
+// El panel mobile (.filter-sheet) está anclado con "bottom: 0" a toda la
+// pantalla. Cuando aparece el teclado virtual, el navegador NO reduce ese
+// "bottom: 0": el teclado simplemente se dibuja encima, tapando la parte
+// inferior del panel (grave si el panel es chico, p. ej. un solo resultado
+// de búsqueda). La Visual Viewport API sí conoce el alto realmente visible
+// con el teclado abierto, así que la usamos para levantar el panel y
+// limitar su altura máxima para que quede siempre por encima del teclado.
+function syncFilterSheetToViewport() {
+  if (!isFilterSheetOpen()) return;
+  if (filterSheet.classList.contains("dropdown")) return; // desktop: no aplica
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const keyboardOffset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+  filterSheet.style.bottom = `${keyboardOffset}px`;
+  // Además de subir el panel, evitamos que su alto máximo (78vh del CSS,
+  // calculado sobre la pantalla completa) se pase del espacio que el
+  // teclado dejó libre arriba.
+  filterSheet.style.maxHeight = `${Math.min(vv.height * 0.78, vv.height - 16)}px`;
+}
+
 function openFilterSheet(type, triggerBtn) {
   filterSheetType = type;
   filterSheetTitle.textContent = type === "cat" ? "Categoría" : "Marca";
@@ -826,10 +846,13 @@ function openFilterSheet(type, triggerBtn) {
   } else {
     filterSheet.style.top = "";
     filterSheet.style.left = "";
+    filterSheet.style.bottom = "";
+    filterSheet.style.maxHeight = "";
   }
 
   filterSheetOverlay.classList.add("open");
   filterSheet.classList.add("open");
+  if (!desktop) syncFilterSheetToViewport();
   filterCatSelectBtns.forEach((btn) => {
     btn.classList.toggle("open", type === "cat");
     btn.setAttribute("aria-expanded", type === "cat" ? "true" : "false");
@@ -854,6 +877,8 @@ function closeFilterSheet() {
     btn.classList.remove("open");
     btn.setAttribute("aria-expanded", "false");
   });
+  filterSheet.style.bottom = "";
+  filterSheet.style.maxHeight = "";
   unlockBodyScroll();
 }
 
@@ -947,7 +972,21 @@ function setupFilterSheetListeners() {
 
   // Evita un dropdown mal posicionado si se redimensiona la ventana
   // (p. ej. rotar el celular, o cruzar el breakpoint mobile/desktop).
-  window.addEventListener("resize", debounce(closeFilterSheet, 150));
+  // Importante: en mobile, al tocar el input de búsqueda del panel aparece
+  // el teclado virtual, y eso también dispara "resize" (cambia el alto
+  // visible del viewport) aunque el ancho de la pantalla no cambió en
+  // absoluto. Si cerráramos el panel en cualquier "resize", se cerraría
+  // solo por escribir. Por eso comparamos contra el ancho anterior y
+  // sólo cerramos cuando realmente cambió el ancho (rotación o breakpoint).
+  let lastFilterSheetWidth = window.innerWidth;
+  window.addEventListener(
+    "resize",
+    debounce(() => {
+      if (window.innerWidth === lastFilterSheetWidth) return; // solo cambió el alto (teclado virtual)
+      lastFilterSheetWidth = window.innerWidth;
+      closeFilterSheet();
+    }, 150)
+  );
 
   // En desktop el dropdown está anclado (position: fixed) a la posición del
   // botón en el momento de abrirse. Si el usuario scrollea la página, el
@@ -969,6 +1008,15 @@ function setupFilterSheetListeners() {
     },
     { passive: true, capture: true }
   );
+
+  // Mantiene el panel por encima del teclado virtual mientras está abierto:
+  // el teclado puede aparecer (al enfocar el buscador), achicarse/agrandarse
+  // (sugerencias de texto predictivo) o desaparecer, y en cada caso el
+  // visualViewport dispara "resize"/"scroll".
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", syncFilterSheetToViewport);
+    window.visualViewport.addEventListener("scroll", syncFilterSheetToViewport);
+  }
 }
 
 // ──────────────────────────────────────────────────────────
