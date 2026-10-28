@@ -41,6 +41,18 @@ async function fetchWhatsappNumber() {
   return WHATSAPP_FALLBACK;
 }
 
+// Copia en memoria del número de WhatsApp. Se usa al momento de enviar el
+// pedido para poder abrir WhatsApp de forma SÍNCRONA dentro del toque del
+// usuario (iOS Safari bloquea window.open si hay un await de por medio).
+let cachedWaNumber = WHATSAPP_FALLBACK;
+async function refreshWhatsappNumber() {
+  try {
+    cachedWaNumber = await fetchWhatsappNumber();
+  } catch (err) {
+    console.warn("No se pudo refrescar el número de WhatsApp.", err);
+  }
+}
+
 // Clave de localStorage donde se guarda si el cliente compra
 // por mayor o por menor.
 const BUYER_TYPE_KEY = "marchese_buyer_type";
@@ -2127,6 +2139,8 @@ function buildWhatsAppMessage(buyerInfo) {
 
 function openOrderModal() {
   if (!orderModalOverlay) return;
+  // Refrescar el número mientras el cliente completa sus datos
+  refreshWhatsappNumber();
   // Precargar con datos guardados cada vez que se abre
   fillBuyerFormFromStorage();
   orderModalOverlay.classList.add("open");
@@ -2220,16 +2234,27 @@ function _checkSoldOutAndSend() {
   _doSendWhatsApp();
 }
 
-async function _doSendWhatsApp() {
-  const number = await fetchWhatsappNumber();
+function _doSendWhatsApp() {
+  // Sin await: la navegación debe ocurrir dentro del gesto del usuario,
+  // si no iOS la bloquea en silencio.
   const message = buildWhatsAppMessage();
-  const waUrl = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  const waUrl = `https://wa.me/${cachedWaNumber}?text=${encodeURIComponent(message)}`;
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
   if (isMobile) {
-    // Mobile: directo a WhatsApp
-    window.open(waUrl, "_blank");
-    afterOrderSent();
+    // Mobile: directo a WhatsApp (location.href no lo frena el bloqueador de popups)
+    window.location.href = waUrl;
+
+    // El carrito se vacía recién cuando la página pasa a segundo plano, es
+    // decir, cuando el usuario realmente salió hacia WhatsApp. Si la apertura
+    // falla, la página sigue visible y el pedido NO se pierde.
+    const onHide = () => {
+      if (document.visibilityState === "hidden") {
+        document.removeEventListener("visibilitychange", onHide);
+        afterOrderSent();
+      }
+    };
+    document.addEventListener("visibilitychange", onHide);
   } else {
     // Desktop: mostrar modal con QR
     closeCart();
@@ -2261,14 +2286,13 @@ function setupWaWebBtnListener() {
 function setupFloatingWaBtn() {
   const btn = document.getElementById("waFloatBtn");
   if (!btn) return;
-  // Usamos click en lugar de href fijo para leer el número en el momento del tap
+  // Usamos click en lugar de href fijo; el número viene de la caché en memoria
   btn.removeAttribute("href");
   btn.style.cursor = "pointer";
-  btn.addEventListener("click", async (e) => {
+  btn.addEventListener("click", (e) => {
     e.preventDefault();
-    const number = await fetchWhatsappNumber();
     const message = "¡Hola! Quería hacer una consulta sobre los productos de Marchese Golosinas 😊";
-    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
+    window.location.href = `https://wa.me/${cachedWaNumber}?text=${encodeURIComponent(message)}`;
   });
 }
 
@@ -2651,6 +2675,7 @@ function init() {
   setupQrModalListeners();
   setupWaWebBtnListener();
   setupFloatingWaBtn();
+  refreshWhatsappNumber();
   setupBrandCarouselClicks();
   renderCategorySkeletons();
   renderBrandSkeletons();
